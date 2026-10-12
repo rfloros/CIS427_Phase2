@@ -79,6 +79,14 @@ gate3_reviewer    = "codex"    # reviews the finished code
 ungated_worker    = "codex"    # small tasks that skip the gates
 ```
 
+**Models for this project.** Codex uses the user's current CLI default; do not
+pin a Codex model here. Gate 1 Claude critiques use `claude-opus-5-5`, set in
+`.claude/settings.json` so the unchanged `agentloop-critic` wrapper selects it
+when run from the project root. For Gate 2, the human starts Claude Code from
+the project root with `claude --model claude-sonnet-5-5`. The `--model` flag
+overrides the project default for that coding session. Check the active model
+before starting work at each gate.
+
 **Default split.** Each engine leads one heavy stage and reviews the other's work, so neither subscription carries both the plan and the code. The Gate 2 implementer is the engine that just critiqued the plan, so it starts coding already knowing the plan's weak spots. Any assignment is valid as long as the no-self-review rule below holds.
 
 - **Author** writes the plan at Gate 1 and revises it.
