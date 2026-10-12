@@ -62,3 +62,25 @@ Template for each entry:
   - Why a write lock? The timer thread and the handler can both send to the same player.
   - How do we know a peer closed? `recv` returns 0.
 - **Try it yourself:** `build/unit_tests T3` (T31, T32, T33 tests) or `make test`.
+
+## Slice 2: Protocol parser and validator
+
+- **What it does:** Reads one line from a client and decides which of the eight
+  commands it is (or which error code it earns). It also builds the exact text
+  of every reply and push so nothing else has to format protocol text.
+- **Key files and functions:**
+  - `src/server/protocol.*` `parse_command()`: one line in, a `Command` or an error code (300 or 423) out.
+  - `status_line()`: the exact text for each response code.
+  - `reply_*()` and `push_*()` builders: return a list of lines (the `Connection` adds the blank line).
+  - `sort_standings()`: highest score first.
+- **Why it is designed this way:** Putting all wire text in one file with no sockets and
+  no game state makes it easy to test byte-for-byte and easy to explain. Names may not
+  contain `:` or spaces, so `name:score` lines stay unambiguous.
+- **How it connects:** The server handler calls `parse_command()`; game logic calls the builders;
+  the client reuses `parse_command()` to check input before sending.
+- **Likely demo questions:**
+  - What does `CREATE_GAME Robert` return? 423, because the count is missing.
+  - What if both name and count are bad? 300, the name is checked first.
+  - Are commands case-sensitive? Yes on the wire; the client uppercases the command word for you.
+  - Which codes exist? 200, 300, 401, 402, 404, 409, 410, 420, 421, 422, 423 (see `status_line`).
+- **Try it yourself:** `build/unit_tests Slice2`
