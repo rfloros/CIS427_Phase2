@@ -50,11 +50,11 @@ In every example, c: marks a line sent by the client and s: marks a line sent by
 ### 4.1 CREATE_GAME
 Starts a new game, registers the sender as host, and sets how many questions the game will use.
 **Request:** CREATE_GAME <host_name> <num_questions>
-- host_name: required, 1 to 20 characters, no spaces.
+- host_name: required, 1 to 20 characters, no spaces and no colon (the colon separates name and score in leaderboard lines).
 - num_questions: required, an integer from 1 to the number of loaded questions.
 **Server behavior:** Validates both fields, generates a unique 4-character join code and a private 4-character alphanumeric reconnect token, registers the host as the first player with score 0, and randomly selects num_questions questions without repeats.
 **Success reply:** 200 OK, then the join code, then the token, then the blank line.
-**Errors:** 300 if host_name is missing or malformed. 423 if num_questions is missing, not a number, or out of range.
+**Errors:** 300 if the command has no arguments, host_name is malformed, or there are extra arguments. 423 if num_questions is missing (after a valid host_name), not a number, or out of range. If both fields are invalid, the host_name error (300) is reported. 300 if the connection is already in a game; the game state does not change (design-changes.md, decision 23).
 ```
 c: CREATE_GAME Robert 10
 s: 200 OK
@@ -67,10 +67,10 @@ K3M9 is Robert's private token. The client stores it locally and never displays 
 Lets a player (or the host, using the same command) join an existing game.
 **Request:** JOIN_GAME <code> <name>
 - code: required, 4-character alphanumeric, case-insensitive.
-- name: required, 1 to 20 characters, no spaces.
+- name: required, 1 to 20 characters, no spaces and no colon.
 **Server behavior:** Checks that the code exists and the name is not already used in that game, adds the player with score 0, and generates their private token. If the game is QUESTION_ACTIVE or INTERMISSION, the player is marked WAITING, does not receive the in-progress question, and starts at the next question. If the game is in LOBBY, the player is ACTIVE immediately.
 **Success reply:** 200 OK, then <player_count> players in game <code>, then the token, then the blank line.
-**Errors:** 300, 404, 409.
+**Errors:** 300, 404, 409. 300 also if the connection is already in a game; the state does not change.
 ```
 c: JOIN_GAME 7QXA Matthew
 s: 200 OK
@@ -106,7 +106,7 @@ Lets a player answer the current question.
 - choice: required, one of A, B, C, D (case-insensitive).
 **Server behavior:** Verifies that the player is ACTIVE in a game, a round is active, and the player has not already answered this round. Records the answer without revealing correctness. Correctness is revealed to everyone at once in ROUND_RESULT.
 **Success reply:** 200 OK.
-**Errors:** 300, 401, 420, 422.
+**Errors:** 300, 401, 420, 422. A player who joined during a round and is still WAITING receives 420.
 ```
 c: SUBMIT_ANSWER B
 s: 200 OK
@@ -127,8 +127,9 @@ s:
 ### 4.6 RECONNECT
 Lets a player who was disconnected unexpectedly (host included) resume with their score intact. The join code and names are known to the whole group, so the private token is what proves this is the same player.
 **Request:** RECONNECT <name> <code> <token>
+The code and token must each be exactly 4 letters or digits and the name must be valid; otherwise the reply is 300. Tokens are case-sensitive. A RECONNECT on a connection that is already in a game also receives 300 and changes nothing.
 **Server behavior:** Looks for a DISCONNECTED_PENDING session matching name, code, and token, within the 60-second reconnect window. If all three match, the server reattaches the connection, restores score and state, and marks the player ACTIVE. A reconnecting host keeps host powers.
-**Success reply:** 200 OK, then <current_score> <question_number> (question_number is 0 in the LOBBY), then the blank line.
+**Success reply:** 200 OK, then <current_score> <question_number> (question_number is 0 in the LOBBY; during an INTERMISSION it is the number of the last question that was opened), then the blank line.
 ```
 c: RECONNECT Robert 7QXA K3M9
 s: 200 OK
@@ -144,7 +145,7 @@ s: C) Jupiter
 s: D) Mercury
 s:
 ```
-**Failure:** Any mismatch, unknown game, ended game, or expired window returns the same generic reply, so a guesser cannot tell which part was wrong:
+**Failure:** Any well-formed request with a mismatch, unknown game, ended game, expired window, or a player who is still connected returns the same generic reply, so a guesser cannot tell which part was wrong:
 ```
 s: 410 Wrong name, game code, or token, or the reconnect window has expired.
 s:
@@ -152,14 +153,14 @@ s:
 ### 4.7 QUIT
 Ends the client's session deliberately. A QUIT is permanent and is not eligible for RECONNECT.
 **Request:** QUIT
-**Server behavior:** Sends the reply, closes that client's socket, and removes the player.
+**Server behavior:** Sends the reply, closes that client's socket, and removes the player. A QUIT from a connection that is not in a game also receives 200 OK and the connection closes.
 ```
 c: QUIT
 s: 200 OK
 s:
 ```
 - If a non-host quits, the game continues normally for everyone else.
-- If the host quits, the game ends for everyone using the same sequence as END_GAME (reason HOST_QUIT). This prevents a game that nobody can end.
+- If the host quits, the game ends for everyone using the same sequence as END_GAME (reason HOST_QUIT), except that the quitting host receives only the 200 OK reply before its socket closes. Every other connected player receives PUSH GAME_END HOST_QUIT. This prevents a game that nobody can end.
 ### 4.8 END_GAME
 Sent only by the host. Ends the game for everyone immediately at any point after CREATE_GAME: in the lobby, mid-question, during an intermission, or during the final 10-second intermission.
 **Request:** END_GAME
@@ -182,7 +183,7 @@ s: D) <option D>
 s:
 ```
 ### 5.2 PUSH ROUND_RESULT
-Sent to every ACTIVE player when a round closes. The game enters INTERMISSION, and any WAITING players become ACTIVE. The leaderboard stays visible for 5 seconds, or 10 seconds after the final question. No client command is involved.
+Sent to every ACTIVE player when a round closes, with the standings sorted from highest to lowest score (ties keep join order). The game enters INTERMISSION, and any WAITING players become ACTIVE. The leaderboard stays visible for 5 seconds, or 10 seconds after the final question. No client command is involved.
 ```
 s: PUSH ROUND_RESULT 3
 s: Correct answer: B

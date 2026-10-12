@@ -19,7 +19,7 @@ Each requirement has an ID, the protocol section that defines it, the phase in w
 - **FR-12** A player who was disconnected unexpectedly, host included, shall be able to reconnect with name, game code, and token within 60 seconds and keep their score. If a round is open, the server shall push the current question again. Protocol 4.6. Phase 2. Tests: T27, T28.
 ### Error handling
 - **FR-13** The server shall reject a join code that does not exist (404). Phase 2. Tests: T17.
-- **FR-14** The server shall reject a question count that is missing, not an integer, or outside 1 to the number of loaded questions (423), and a missing host name (300). Phase 2. Tests: T16.
+- **FR-14** The server shall reject a question count that is missing, not an integer, or outside 1 to the number of loaded questions (423), and a missing or malformed host name, or extra arguments (300). Phase 2. Tests: T16.
 - **FR-15** The server shall reject a name already used in that game (409). Names only need to be unique within one game. Phase 3. Tests: T23, T37.
 - **FR-16** The server shall reject any command that needs a game when the sender is not in one (401), for example LEADERBOARD. The client shall show the error. Phase 2. Tests: T18.
 - **FR-17** The server shall reject a host-only command from a non-host (402). Phase 3. Tests: T22.
