@@ -48,3 +48,7 @@ Add a row: number, date, what changed, why, which requirement or test it affects
 | 28 | 2026-10-12 | Timing command-line overrides must be positive finite numbers. | Zero, negative, or NaN timers would break round logic. | NFR-11 |
 | 29 | 2026-10-12 | Host QUIT sends the quitting host only `200 OK` before closing; other connected players get GAME_END HOST_QUIT. | Clarifies protocol 4.7 (the host asked to leave, so it needs no end notice). Human-approved at Gate 1. | FR-11, T09 |
 | 30 | 2026-10-12 | ROUND_RESULT standings are sorted highest first, like LEADERBOARD and GAME_END. | The protocol example for ROUND_RESULT was unsorted, but it calls it a leaderboard. | FR-07 |
+| 31 | 2026-10-12 | Phase 2 delivery uses one coordinator mutex and direct, bounded socket writes (200 ms send timeout) instead of a dedicated writer thread and outbound queue. See architecture.md. | Simplest design that still guarantees reply-before-push. Human chose it at Gate 1. | FR-24, T35 |
+| 32 | 2026-10-12 | Ctrl+C is handled with a wake-up pipe; the server logs `server shutting down` and sends no protocol message. | The protocol defines no push for server shutdown. | T13 |
+| 33 | 2026-10-12 | After the server ends a session on purpose it half-closes, waits up to 0.5 s for the client to close, then closes. | Closing a socket that still has unread input resets the connection and can drop the final GAME_END message. | T07, T08 |
+

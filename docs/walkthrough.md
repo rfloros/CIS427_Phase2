@@ -139,3 +139,31 @@ Template for each entry:
   - Why can timers be `0.2`? Tests and demos need short rounds; defaults stay 20/5/10/60.
   - What happens with `./server 70000`? A usage error and a non-zero exit.
 - **Try it yourself:** `build/unit_tests Slice4`
+
+## Slice 5: Server runtime
+
+- **What it does:** Runs the real server: it listens on a port, serves one client at a
+  time, and keeps a timer thread that closes rounds and opens questions even when
+  nobody types anything.
+- **Key files and functions:**
+  - `src/server/server.*` `Server`: `accept_loop()` waits for a client; `handle_connection()` reads lines and runs them through the parser and game logic; `timer_loop()` calls `tick()` every 20 ms; `deliver()` writes the effects.
+  - `src/server/startup.*` `run_server()`: opens the log, loads questions, picks the seed, starts the server, runs until Ctrl+C.
+  - `src/server/server_main.cpp`: parses arguments and installs the Ctrl+C handler.
+- **Threads:** the main thread accepts and handles the one client; the timer thread
+  advances games. They share the game state through a `coordinator_` mutex.
+- **How reply-before-push is guaranteed:** a command holds the coordinator lock while the
+  game state changes *and* while its reply and pushes are written, in the order the game
+  logic listed them. The timer thread needs the same lock, so it can never slip a push in
+  between. (See `docs/architecture.md`.)
+- **What happens on disconnect:** `recv` returns 0 (or an error), the handler tells the game
+  logic (`on_disconnect`), which keeps the player for 60 seconds, removes the connection from
+  the live map, and only then closes the socket.
+- **Why it is designed this way:** One simple lock is easier to explain than a writer thread and
+  queue, and one client at a time means contention is not a problem. Phase 3 can run the same
+  handler once per client.
+- **Likely demo questions:**
+  - Can the timer and a command write at the same time? No, the coordinator mutex serializes them.
+  - What if a client stops reading? Writes time out after 200 ms and the connection is dropped.
+  - What if the host's connection drops during a round? The timer keeps running and the host can RECONNECT.
+  - How does Ctrl+C stop everything? A signal handler writes to a pipe; the accept loop and handler notice, the timer thread is joined.
+- **Try it yourself:** `build/integration_tests T35` or `./server 5000` then `nc localhost 5000` and type `CREATE_GAME Robert 3`.
