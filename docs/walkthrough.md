@@ -167,3 +167,30 @@ Template for each entry:
   - What if the host's connection drops during a round? The timer keeps running and the host can RECONNECT.
   - How does Ctrl+C stop everything? A signal handler writes to a pipe; the accept loop and handler notice, the timer thread is joined.
 - **Try it yourself:** `build/integration_tests T35` or `./server 5000` then `nc localhost 5000` and type `CREATE_GAME Robert 3`.
+
+## Slice 6: Client
+
+- **What it does:** The terminal program a player runs. It lists the commands, checks what you
+  type, sends it, and shows replies. Questions and results from the server appear on their
+  own even while you are idle at the prompt.
+- **Key files and functions:**
+  - `src/client/client.*` `Client`: `run()` is the main thread (keyboard); `reader_loop()` is the reader thread (socket).
+  - `src/client/client_ui.*`: `interpret_input()` turns a typed line into "send this" or "show this message"; `command_list_text()`, `prompt_text()`.
+  - `src/client/reply_queue.*` `ReplyQueue`: hands replies from the reader thread to the main thread.
+  - `src/client/session_file.*`: saves name/code/token to `.termtrivia_session` (permissions 0600).
+  - `src/client/client_main.cpp`: argument check, `getaddrinfo`/`connect`, clear error if the server is down.
+- **The two threads:** The reader thread is the only caller of `recv`. It cuts bytes into messages
+  with the Slice 1 classes. A message whose first line starts with `PUSH` is printed immediately;
+  anything else is a reply and goes on the queue. The main thread sends one command and waits for
+  the next reply from the queue, so a push can never be mistaken for a reply.
+- **Why the main thread polls:** It waits on both the keyboard and a small "wake-up" pipe. When the
+  server closes or the game ends, the reader writes to the pipe, so an idle client exits without
+  needing another key press.
+- **The session file:** CREATE_GAME and JOIN_GAME replies contain the private token. The client
+  saves it for `RECONNECT` and never prints it. QUIT and GAME_END delete the file.
+- **Likely demo questions:**
+  - Why two threads? Pushes can arrive at any time, so something must always be listening.
+  - Where is the token? Only in `.termtrivia_session`, readable only by you.
+  - What if you press Ctrl+D? The client closes without QUIT, so you can `RECONNECT` later.
+  - What does `help` send to the server? Nothing; it is handled locally.
+- **Try it yourself:** `build/integration_tests T34` and `build/integration_tests Slice6`

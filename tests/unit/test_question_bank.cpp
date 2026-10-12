@@ -3,7 +3,7 @@
 #include <sstream>
 
 #include "minitest.h"
-#include "server/protocol.h"
+#include "common/protocol.h"
 #include "server/question_bank.h"
 
 namespace {

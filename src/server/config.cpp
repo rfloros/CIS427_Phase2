@@ -42,8 +42,6 @@ const char* server_usage() {
            "                [--final-intermission-secs N] [--reconnect-secs N]";
 }
 
-const char* client_usage() { return "usage: ./client <host> <port>"; }
-
 bool parse_server_args(const std::vector<std::string>& args, ServerConfig& config,
                        std::string& error) {
     config = ServerConfig{};
@@ -101,23 +99,5 @@ bool parse_server_args(const std::vector<std::string>& args, ServerConfig& confi
         error = "missing port";
         return false;
     }
-    return true;
-}
-
-bool parse_client_args(const std::vector<std::string>& args, ClientConfig& config,
-                       std::string& error) {
-    if (args.size() != 2) {
-        error = "expected a host and a port";
-        return false;
-    }
-    if (args[0].empty()) {
-        error = "host must not be empty";
-        return false;
-    }
-    if (!parse_port(args[1], config.port)) {
-        error = "invalid port (use 1 to 65535): " + args[1];
-        return false;
-    }
-    config.host = args[0];
     return true;
 }

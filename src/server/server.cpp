@@ -169,6 +169,7 @@ void Server::handle_connection(ConnId id, Connection& connection) {
             process_line(id, line);
         }
     }
+    if (connection.is_closing()) reason = "session ended by server";
     if (stopping_) reason = "server shutting down";
     finish_connection(id);
     logger_.client_disconnected(id, reason);

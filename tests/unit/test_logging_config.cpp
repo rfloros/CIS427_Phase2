@@ -6,6 +6,7 @@
 
 #include "common/net_util.h"
 #include "minitest.h"
+#include "client/client_config.h"
 #include "server/config.h"
 #include "server/logger.h"
 

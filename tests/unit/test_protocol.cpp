@@ -1,6 +1,6 @@
 // Slice 2: command parsing, error texts, and byte-exact message builders.
 #include "minitest.h"
-#include "server/protocol.h"
+#include "common/protocol.h"
 
 namespace {
 

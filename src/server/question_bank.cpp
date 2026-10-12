@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <fstream>
 
-#include "server/protocol.h"
+#include "common/protocol.h"
 
 namespace {
 

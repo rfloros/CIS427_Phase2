@@ -1,4 +1,4 @@
-#include "server/protocol.h"
+#include "common/protocol.h"
 
 #include <algorithm>
 #include <cctype>

@@ -8,7 +8,7 @@ Status checklist (tick when the slice's tests pass and its walkthrough entry exi
 - [x] Slice 3: Game logic
 - [x] Slice 4: Logging and configuration
 - [x] Slice 5: Server runtime
-- [ ] Slice 6: Client
+- [x] Slice 6: Client
 - [ ] Slice 7: Scripted failure scenarios and results
 - [ ] Slice 8: Deliverables
 

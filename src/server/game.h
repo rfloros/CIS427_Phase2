@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-#include "server/protocol.h"
+#include "common/protocol.h"
 #include "server/question_bank.h"
 
 using ConnId = uint64_t;

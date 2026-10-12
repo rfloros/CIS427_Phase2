@@ -1,7 +1,7 @@
 // Protocol layer: turns one line into a typed Command and builds the exact
 // reply and push text. No sockets and no game state.
-#ifndef SERVER_PROTOCOL_H
-#define SERVER_PROTOCOL_H
+#ifndef COMMON_PROTOCOL_H
+#define COMMON_PROTOCOL_H
 
 #include <array>
 #include <string>

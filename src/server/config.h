@@ -1,4 +1,4 @@
-// Command-line settings for the server and the client.
+// Command-line settings for the server.
 #ifndef SERVER_CONFIG_H
 #define SERVER_CONFIG_H
 
@@ -17,18 +17,10 @@ struct ServerConfig {
     Timings timings;  // defaults are the spec values: 20, 5, 10, 60 seconds
 };
 
-struct ClientConfig {
-    std::string host;
-    int port = 0;
-};
-
 // `args` excludes the program name. On failure `error` says why.
 bool parse_server_args(const std::vector<std::string>& args, ServerConfig& config,
                        std::string& error);
-bool parse_client_args(const std::vector<std::string>& args, ClientConfig& config,
-                       std::string& error);
 
 const char* server_usage();
-const char* client_usage();
 
 #endif

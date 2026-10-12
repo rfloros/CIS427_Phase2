@@ -3,7 +3,7 @@
 
 #include "minitest.h"
 #include "server/game.h"
-#include "server/protocol.h"
+#include "common/protocol.h"
 
 namespace {
 
