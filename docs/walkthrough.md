@@ -37,3 +37,28 @@ Template for each entry:
   - Why does `make test` rebuild first? Its prerequisites are the programs and test binaries.
   - Where do the warnings flags live? `CXXFLAGS` in the `Makefile` (`-Wall -Wextra`).
 - **Try it yourself:** `make test`
+
+## Slice 1: Framing and connection layer
+
+- **What it does:** Turns the raw bytes that arrive from a TCP socket into
+  complete lines, and groups server lines into whole messages. It also sends
+  messages safely, one whole message at a time.
+- **Key files and functions:**
+  - `src/common/line_buffer.*` `LineBuffer`: `append()` adds bytes, `next()` returns the next complete line or an over-length report.
+  - `src/common/message_assembler.*` `MessageAssembler`: `add_line()` collects lines until a blank line, then returns a `Message` flagged as push or reply.
+  - `src/common/connection.*` `Connection`: owns the socket; `read_line()` and `send_message()`.
+- **Why it is designed this way:** TCP is a byte stream, so one `recv()` can return half a
+  line or three lines. We keep every byte in a buffer and only act on text ending in
+  a newline. Server messages end with a blank line so the client knows where one
+  message stops, and the write lock plus one-buffer `send` stops two threads from
+  mixing their lines together. `MSG_NOSIGNAL` turns a vanished peer into a
+  failed send instead of a crash.
+- **How it connects:** The server handler and the client reader thread both call
+  `Connection::read_line()`. `LineBuffer` and `MessageAssembler` have no socket calls, so
+  tests feed them plain strings.
+- **Likely demo questions:**
+  - Why can a command arrive in pieces? TCP does not keep message boundaries.
+  - What happens to a 600-character line? One `TooLong` event, the rest is thrown away up to the newline, and the next command works.
+  - Why a write lock? The timer thread and the handler can both send to the same player.
+  - How do we know a peer closed? `recv` returns 0.
+- **Try it yourself:** `build/unit_tests T3` (T31, T32, T33 tests) or `make test`.

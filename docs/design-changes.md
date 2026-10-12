@@ -34,3 +34,7 @@ Log every deviation from the Phase 1 design or the spec here, with a reason. Thi
 ## Part 3: Log new decisions below
 
 Add a row: number, date, what changed, why, which requirement or test it affects.
+
+| # | Date | Decision | Why | Affects |
+|---|---|---|---|---|
+| 20 | 2026-10-12 | Tests use our own `tests/minitest.h` plus shell scripts instead of vendoring doctest. | The human chose this (Gate 1 answer "Use minitest and shell scripts"); START_HERE.md allows the fallback and forbids new dependencies. | All tests |
