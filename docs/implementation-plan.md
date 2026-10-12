@@ -2,7 +2,7 @@
 
 Status checklist (tick when the slice's tests pass and its walkthrough entry exists):
 
-- [ ] Slice 0: Skeleton
+- [x] Slice 0: Skeleton
 - [ ] Slice 1: Framing and connection layer
 - [ ] Slice 2: Protocol parser and validator
 - [ ] Slice 3: Game logic
