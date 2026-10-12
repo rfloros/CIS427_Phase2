@@ -119,3 +119,23 @@ Template for each entry:
   - How are questions chosen? Shuffle the bank with the seeded generator, take the first N, so no repeats.
   - Where do tokens go? Only into the create/join reply; events for the log never include them.
 - **Try it yourself:** `build/unit_tests T0` and `build/unit_tests Slice3`
+
+## Slice 4: Logging and configuration
+
+- **What it does:** Writes a timestamped log of what the server does, and reads the
+  command-line options for the server and the client.
+- **Key files and functions:**
+  - `src/server/logger.*` `Logger`: one line per event, `2026-10-12T17:20:07 INFO ...`, flushed at once, with a mutex so the timer thread and handler never mix lines.
+  - `src/server/config.*` `parse_server_args()` / `parse_client_args()`: turn arguments into settings or an error message.
+  - `src/common/net_util.*` `parse_port()`: whole numbers 1 to 65535 only.
+- **Why it is designed this way:** The logger's event functions only accept a command
+  *name* and a result code, never the raw request line, so a token has no path into the
+  log. Timing flags accept decimals so tests can run in milliseconds, but zero,
+  negative, NaN, and infinity are refused.
+- **How it connects:** `server_main` parses arguments and opens the log; the handler and timer
+  thread call the `Logger` event functions.
+- **Likely demo questions:**
+  - What is never logged? Tokens and raw request text.
+  - Why can timers be `0.2`? Tests and demos need short rounds; defaults stay 20/5/10/60.
+  - What happens with `./server 70000`? A usage error and a non-zero exit.
+- **Try it yourself:** `build/unit_tests Slice4`
