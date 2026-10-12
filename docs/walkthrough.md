@@ -84,3 +84,38 @@ Template for each entry:
   - Are commands case-sensitive? Yes on the wire; the client uppercases the command word for you.
   - Which codes exist? 200, 300, 401, 402, 404, 409, 410, 420, 421, 422, 423 (see `status_line`).
 - **Try it yourself:** `build/unit_tests Slice2`
+
+## Slice 3: Game logic
+
+- **What it does:** Holds all game rules: creating and joining games, the question
+  timeline, scoring, the leaderboard, ending a game, and disconnect/reconnect.
+  It never touches a socket. Instead each call returns a list of "effects" (which
+  connection gets which message) and the server layer delivers them.
+- **Key files and functions:**
+  - `src/server/game.*` `GameManager`: `handle()` runs one command, `on_disconnect()` handles a dropped connection, `tick(now)` advances timers.
+  - `src/server/question_bank.*`: reads `questions.txt`, skips bad lines with a warning.
+  - `src/server/random_seed.*`: OS entropy for the production random seed.
+- **State machine:**
+
+  | State | Becomes | When |
+  |---|---|---|
+  | LOBBY | QUESTION_ACTIVE | host sends START_ROUND |
+  | QUESTION_ACTIVE | INTERMISSION | timer expires, or every ACTIVE player has answered |
+  | INTERMISSION | QUESTION_ACTIVE | 5 s pass and questions remain |
+  | INTERMISSION | ended (removed) | final 10 s pass: GAME_END COMPLETE |
+  | any | ended (removed) | END_GAME or host QUIT |
+
+- **Why it is designed this way:** Time is passed in as a number and randomness comes
+  from a seed, so tests need no sleeping and are repeatable. Effects keep networking
+  out of the rules (NFR-08) and make the reply-before-push order visible: the reply is
+  always the first effect in the list. One mutex guards all state for Phase 3.
+- **How reconnect works:** An unexpected drop keeps the player in the game as
+  DISCONNECTED_PENDING with the time of the drop. RECONNECT must match name, code,
+  and token within 60 seconds; every failure gives the same 410. `tick()` removes
+  expired players and removes a game with nobody left.
+- **Likely demo questions:**
+  - Does a faster answer score more? No, one point for correct, see `close_round()`.
+  - What if the host disconnects mid-round? The timer keeps running; with nobody active the round waits for the timer.
+  - How are questions chosen? Shuffle the bank with the seeded generator, take the first N, so no repeats.
+  - Where do tokens go? Only into the create/join reply; events for the log never include them.
+- **Try it yourself:** `build/unit_tests T0` and `build/unit_tests Slice3`
