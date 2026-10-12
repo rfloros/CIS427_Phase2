@@ -1,0 +1,27 @@
+{
+  "type": "object",
+  "required": ["verdict", "summary", "findings", "reviewed", "not_assessed"],
+  "additionalProperties": false,
+  "properties": {
+    "verdict": { "enum": ["APPROVED", "REVISE", "BLOCKED"] },
+    "summary": { "type": "string" },
+    "reviewed": { "type": "array", "items": { "type": "string" } },
+    "not_assessed": { "type": "array", "items": { "type": "string" } },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "severity", "claim", "location", "suggestion", "addresses"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "severity": { "enum": ["critical", "major", "minor"] },
+          "claim": { "type": "string" },
+          "location": { "type": "string" },
+          "suggestion": { "type": ["string", "null"] },
+          "addresses": { "type": ["string", "null"] }
+        }
+      }
+    }
+  }
+}
