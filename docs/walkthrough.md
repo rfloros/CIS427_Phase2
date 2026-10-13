@@ -194,3 +194,23 @@ Template for each entry:
   - What if you press Ctrl+D? The client closes without QUIT, so you can `RECONNECT` later.
   - What does `help` send to the server? Nothing; it is handled locally.
 - **Try it yourself:** `build/integration_tests T34` and `build/integration_tests Slice6`
+
+## Slice 7: Scripted failure scenarios and results
+
+- **What it does:** Runs the real `server` and `client` programs through the failure cases so they
+  can be repeated live: bad input, split and combined sends, a missing server, bad ports, a killed
+  client that reconnects, a server that disappears, and Ctrl+C.
+- **Key files and functions:**
+  - `tests/helpers/raw_client.cpp`: a tiny scripted socket client (`send`, `bytewise`, `sleep`, `read`, `kill`) that shows the exact bytes the server returns.
+  - `tests/scripts/scenarios.sh`: the failure scenarios (T14 to T16, T21, T24 to T27, T29, T31 to T33, SIGINT, no tokens in the log). Runs in `make test`.
+  - `tests/scripts/default_timers.sh`: the slow check with the real 20/5/10/60 second timers (`make test-default-timers`).
+  - `scripts/make_sample_log.sh`: records `docs/sample_server.log` from a real run.
+  - `tests/scripts/lib.sh`: starts a server on a free port and cleans up.
+- **Why it is designed this way:** Unit tests prove the parts; these scripts prove the programs a
+  grader will actually run. The raw client lets us show framing cases (split command, two commands
+  in one send) that a normal typing client cannot produce.
+- **Likely demo questions:**
+  - How do you show a command split across two sends? `build/raw_client 127.0.0.1 PORT send 'CREATE_GAME Rob' sleep 500 send 'ert 3\n' read 300`.
+  - Why two kinds of timer test? `make test` uses fast timers; `make test-default-timers` measures the real ones.
+  - How do you know tokens are not logged? The scripts search the log for the real token and fail if found.
+- **Try it yourself:** `bash tests/scripts/scenarios.sh`
