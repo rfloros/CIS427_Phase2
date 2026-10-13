@@ -431,15 +431,32 @@ TEST_CASE("Slice3 joining mid-round makes a player WAITING until the round resul
     CHECK(!next.empty());
 }
 
-TEST_CASE("Slice3 joining during intermission is also WAITING") {
+TEST_CASE("Slice3 joining during intermission is WAITING until the next question, which they receive") {
     World world;
     const Session s = create(world, 1, "Robert", 3);
     const Lines question = start(world, 1);
     world.run(1, std::string("SUBMIT_ANSWER ") + correct_for(question));
     world.run(2, "JOIN_GAME " + s.code + " Matthew");
     CHECK(*world.manager.player_state(s.code, "Matthew") == PlayerState::Waiting);
-    const Outcome next = world.tick_at(5.1);
-    CHECK_EQ(count_for(next, 2), static_cast<size_t>(0));  // promoted at the result, not later
+    CHECK_EQ(world.run(2, "SUBMIT_ANSWER A").code, 420);  // still no round for them
+    const Lines next = tick_to_question(world, 2, 6);     // question 2 itself reaches the newcomer
+    CHECK(!next.empty() && is_push(next, "QUESTION 2 "));
+    CHECK(*world.manager.player_state(s.code, "Matthew") == PlayerState::Active);
+    CHECK_EQ(world.run(2, std::string("SUBMIT_ANSWER ") + correct_for(next)).code, 200);
+}
+
+TEST_CASE("G3-2 a correct answer still scores when the player disconnects before the round closes") {
+    World world;
+    const Session s = create(world, 1, "Robert", 3);
+    join(world, 2, s.code, "Matthew");
+    const Lines question = start(world, 1);
+    world.run(1, std::string("SUBMIT_ANSWER ") + correct_for(question));
+    world.manager.on_disconnect(1, world.now);
+    world.tick_at(21);  // Matthew never answers, so the timer closes the round
+    CHECK_EQ(*world.manager.player_score(s.code, "Robert"), 1);
+    // the restored score is the correct one after a reconnect
+    const Outcome back = world.run(3, "RECONNECT Robert " + s.code + " " + s.token);
+    CHECK(effect_for(back, 3)->lines == reply_reconnect(1, 1));
 }
 
 TEST_CASE("Slice3 round waits for the timer while some active player has not answered") {

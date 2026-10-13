@@ -288,6 +288,8 @@ void GameManager::open_question(Game& game, double now, Outcome& outcome) {
     for (auto& player : game.players) {
         player.answered = false;
         player.answer = 0;
+        // A player who joined during the intermission starts with this question.
+        if (player.state == PlayerState::Waiting) player.state = PlayerState::Active;
         if (player.state == PlayerState::Active) outcome.effects.push_back({player.conn, push, false});
     }
     outcome.events.push_back("game " + game.code + ": question " +
@@ -296,11 +298,9 @@ void GameManager::open_question(Game& game, double now, Outcome& outcome) {
 
 void GameManager::close_round(Game& game, double now, Outcome& outcome) {
     const Question& question = questions_[game.question_order[game.current_number - 1]];
+    // An accepted answer counts even if the player has disconnected since.
     for (auto& player : game.players) {
-        if (player.state == PlayerState::Active && player.answered &&
-            player.answer == question.correct) {
-            ++player.score;
-        }
+        if (player.answered && player.answer == question.correct) ++player.score;
     }
 
     const Lines result = push_round_result(game.current_number, question.correct, standings(game));
