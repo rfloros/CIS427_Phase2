@@ -48,7 +48,7 @@ private:
     void finish_connection(ConnId id);
 
     // Both need coordinator_ held. They log, then write the effects in order.
-    void apply(ConnId id, const Outcome& outcome);
+    void apply(const Outcome& outcome);
     void deliver(const std::vector<Effect>& effects);
 
     double now_seconds() const;

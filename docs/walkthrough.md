@@ -214,3 +214,21 @@ Template for each entry:
   - Why two kinds of timer test? `make test` uses fast timers; `make test-default-timers` measures the real ones.
   - How do you know tokens are not logged? The scripts search the log for the real token and fail if found.
 - **Try it yourself:** `bash tests/scripts/scenarios.sh`
+
+## Slice 8: Deliverables
+
+- **What it does:** Packages the project so a teammate or grader can build, run, test, and demo it
+  from the README alone.
+- **Key files:**
+  - `README.md`: build, run, command list, tests, demo, and a map of the code.
+  - `docs/phase2-test-report.md`: what was run and the measured results.
+  - `docs/design-change-summary.md`: the one-page summary of `docs/design-changes.md`.
+  - `docs/sample_server.log`: a real, unedited server log (`scripts/make_sample_log.sh`).
+  - `scripts/demo.sh`: the live demo as one command.
+- **Why it is designed this way:** The demo and the sample log are produced by scripts against the real
+  binaries, so they cannot drift from what the code actually does.
+- **Likely demo questions:**
+  - Where do I find out how X works? `docs/walkthrough.md`, one entry per slice.
+  - How do I see the real defaults working? `make test-default-timers`.
+  - Which tests are still pending? Only the Phase 3 simultaneous-client tests.
+- **Try it yourself:** `bash scripts/demo.sh`

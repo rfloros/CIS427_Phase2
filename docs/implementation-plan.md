@@ -10,7 +10,7 @@ Status checklist (tick when the slice's tests pass and its walkthrough entry exi
 - [x] Slice 5: Server runtime
 - [x] Slice 6: Client
 - [x] Slice 7: Scripted failure scenarios and results
-- [ ] Slice 8: Deliverables
+- [x] Slice 8: Deliverables
 
 Test IDs refer to docs/test-plan.md. "Phase 3" tests are written as unit tests where possible but not run over real simultaneous sockets until Phase 3.
 

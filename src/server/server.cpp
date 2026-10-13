@@ -107,7 +107,7 @@ void Server::timer_loop() {
     while (!stopping_) {
         {
             std::lock_guard<std::mutex> lock(coordinator_);
-            apply(0, manager_.tick(now_seconds()));
+            apply(manager_.tick(now_seconds()));
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(kTimerTickMs));
     }
@@ -189,7 +189,7 @@ void Server::process_line(ConnId id, const std::string& line) {
         logger_.protocol_error(id, parsed.error_code,
                                "rejected " + logged_command_word(line) + " request");
     }
-    apply(id, outcome);
+    apply(outcome);
 }
 
 void Server::process_too_long_line(ConnId id) {
@@ -197,7 +197,7 @@ void Server::process_too_long_line(ConnId id) {
     logger_.protocol_error(id, 300, "line longer than 512 bytes");
     Outcome outcome;
     outcome.effects.push_back({id, reply_error(300), false});
-    apply(id, outcome);
+    apply(outcome);
 }
 
 // Reads whatever the client already sent without acting on it, then waits a
@@ -221,12 +221,11 @@ void Server::drain_until_peer_closes(Connection& connection) {
 // means no later effect can reach a reused descriptor.
 void Server::finish_connection(ConnId id) {
     std::lock_guard<std::mutex> lock(coordinator_);
-    apply(id, manager_.on_disconnect(id, now_seconds()));
+    apply(manager_.on_disconnect(id, now_seconds()));
     live_connections_.erase(id);
 }
 
-void Server::apply(ConnId id, const Outcome& outcome) {
-    (void)id;
+void Server::apply(const Outcome& outcome) {
     for (const auto& event : outcome.events) logger_.info(event);
     deliver(outcome.effects);
 }

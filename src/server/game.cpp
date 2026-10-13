@@ -23,7 +23,7 @@ int GameManager::available_questions() const { return static_cast<int>(questions
 Outcome GameManager::handle(ConnId conn, const Command& command, double now) {
     std::lock_guard<std::mutex> lock(mutex_);
     switch (command.type) {
-        case CommandType::CreateGame: return create_game(conn, command, now);
+        case CommandType::CreateGame: return create_game(conn, command);
         case CommandType::JoinGame: return join_game(conn, command);
         case CommandType::StartRound: return start_round(conn, now);
         case CommandType::SubmitAnswer: return submit_answer(conn, command, now);
@@ -72,8 +72,7 @@ Outcome GameManager::tick(double now) {
 
 // ---------------------------------------------------------------- commands
 
-Outcome GameManager::create_game(ConnId conn, const Command& command, double now) {
-    (void)now;
+Outcome GameManager::create_game(ConnId conn, const Command& command) {
     if (game_code_of_conn_.count(conn)) return reply_only(conn, 300);
     if (command.num_questions < 1 || command.num_questions > available_questions()) {
         return reply_only(conn, 423);

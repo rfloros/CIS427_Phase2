@@ -85,7 +85,7 @@ private:
     };
 
     // All of these assume mutex_ is held.
-    Outcome create_game(ConnId conn, const Command& command, double now);
+    Outcome create_game(ConnId conn, const Command& command);
     Outcome join_game(ConnId conn, const Command& command);
     Outcome start_round(ConnId conn, double now);
     Outcome submit_answer(ConnId conn, const Command& command, double now);

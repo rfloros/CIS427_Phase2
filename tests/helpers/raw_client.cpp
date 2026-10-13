@@ -67,8 +67,8 @@ void print_received(const char* data, size_t size) {
     }
 }
 
-// Waits up to `ms` for data; returns false once the server has closed.
-void read_for(int fd, long ms, bool stop_at_eof) {
+// Prints whatever arrives for up to `ms` milliseconds, or until the server closes.
+void read_for(int fd, long ms) {
     const auto end = std::chrono::steady_clock::now() + std::chrono::milliseconds(ms);
     while (!server_closed) {
         const long left = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -85,7 +85,6 @@ void read_for(int fd, long ms, bool stop_at_eof) {
         }
         print_received(chunk, static_cast<size_t>(got));
     }
-    (void)stop_at_eof;
 }
 
 void send_all(int fd, const std::string& bytes) {
@@ -147,13 +146,13 @@ int main(int argc, char** argv) {
             const long delay = std::atol(args[i + 2].c_str());
             for (char c : text) {
                 send_all(fd, std::string(1, c));
-                read_for(fd, delay, false);
+                read_for(fd, delay);
             }
             i += 2;
         } else if (step == "sleep" && i + 1 < args.size()) {
-            read_for(fd, std::atol(args[++i].c_str()), false);  // keeps reading so stamps are accurate
+            read_for(fd, std::atol(args[++i].c_str()));  // keeps reading so stamps are accurate
         } else if ((step == "read" || step == "closewait") && i + 1 < args.size()) {
-            read_for(fd, std::atol(args[++i].c_str()), step == "closewait");
+            read_for(fd, std::atol(args[++i].c_str()));
         } else if (step == "kill") {
             break;  // closing the descriptor below ends the connection
         } else {
