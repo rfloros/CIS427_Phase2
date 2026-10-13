@@ -1,1 +1,6 @@
 .agentloop/runs/
+/server
+/client
+build/
+server.log
+.termtrivia_session

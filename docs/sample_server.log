@@ -1,0 +1,22 @@
+2026-10-12T20:11:08 INFO server starting
+2026-10-12T20:11:08 INFO listening on 0.0.0.0:27304
+2026-10-12T20:11:08 INFO client 1 connected from 127.0.0.1:60482
+2026-10-12T20:11:08 INFO client 1 request CREATE_GAME -> 200
+2026-10-12T20:11:08 INFO game 8YOS created by Robert with 3 questions
+2026-10-12T20:11:08 INFO client 1 request START_ROUND -> 200
+2026-10-12T20:11:08 INFO game 8YOS: question 1 opened
+2026-10-12T20:11:08 WARN client 1 protocol error 300: rejected unknown request
+2026-10-12T20:11:08 WARN client 1 protocol error 423: rejected CREATE_GAME request
+2026-10-12T20:11:09 INFO client 1 request SUBMIT_ANSWER -> 200
+2026-10-12T20:11:09 INFO game 8YOS: round 1 closed
+2026-10-12T20:11:09 INFO client 1 request LEADERBOARD -> 200
+2026-10-12T20:11:09 INFO game 8YOS: player Robert disconnected, reconnect window open
+2026-10-12T20:11:09 INFO client 1 disconnected: closed by peer
+2026-10-12T20:11:11 INFO client 2 connected from 127.0.0.1:60494
+2026-10-12T20:11:11 INFO client 2 request RECONNECT -> 200
+2026-10-12T20:11:11 INFO game 8YOS: player Robert reconnected
+2026-10-12T20:11:11 INFO client 2 request LEADERBOARD -> 200
+2026-10-12T20:11:11 INFO client 2 request QUIT -> 200
+2026-10-12T20:11:11 INFO game 8YOS ended: HOST_QUIT
+2026-10-12T20:11:11 INFO client 2 disconnected: session ended by server
+2026-10-12T20:11:11 INFO server shutting down

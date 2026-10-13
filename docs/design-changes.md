@@ -34,3 +34,25 @@ Log every deviation from the Phase 1 design or the spec here, with a reason. Thi
 ## Part 3: Log new decisions below
 
 Add a row: number, date, what changed, why, which requirement or test it affects.
+
+| # | Date | Decision | Why | Affects |
+|---|---|---|---|---|
+| 20 | 2026-10-12 | Tests use our own `tests/minitest.h` plus shell scripts instead of vendoring doctest. | The human chose this (Gate 1 answer "Use minitest and shell scripts"); START_HERE.md allows the fallback and forbids new dependencies. | All tests |
+| 21 | 2026-10-12 | CREATE_GAME with a valid name but no count returns 423. Extra arguments or an invalid name return 300, and the name is checked first when both fields are bad. | The protocol did not say what a missing count or extra arguments return (human chose these at Gate 1). | FR-14, T16 |
+| 22 | 2026-10-12 | A player name containing a colon is malformed (300). | Leaderboard lines are `name:score`, so a colon would be ambiguous. | FR-18 |
+| 23 | 2026-10-12 | CREATE_GAME, JOIN_GAME, or RECONNECT on a connection that is already in a game returns 300 and changes nothing. | Previously undefined. | FR-18 |
+| 24 | 2026-10-12 | QUIT from a connection that is not in a game returns 200 OK and then closes the connection. | Previously undefined. | FR-11 |
+| 25 | 2026-10-12 | SUBMIT_ANSWER from a WAITING player returns 420. | A waiting player never saw the question, so for them no round is open. | FR-19 |
+| 26 | 2026-10-12 | RECONNECT with a malformed code or token (not 4 letters or digits) returns 300. A well-formed request with wrong, expired, or unknown details returns the same generic 410. Tokens are matched case-sensitively. | Keeps the generic-410 secrecy rule for guesses while still reporting format mistakes. | FR-12, T28 |
+| 27 | 2026-10-12 | RECONNECT during an INTERMISSION reports the number of the last question that was opened. | The protocol only defined question numbers for LOBBY and live rounds. | FR-12, T27 |
+| 28 | 2026-10-12 | Timing command-line overrides must be positive finite numbers. | Zero, negative, or NaN timers would break round logic. | NFR-11 |
+| 29 | 2026-10-12 | Host QUIT sends the quitting host only `200 OK` before closing; other connected players get GAME_END HOST_QUIT. | Clarifies protocol 4.7 (the host asked to leave, so it needs no end notice). Human-approved at Gate 1. | FR-11, T09 |
+| 30 | 2026-10-12 | ROUND_RESULT standings are sorted highest first, like LEADERBOARD and GAME_END. | The protocol example for ROUND_RESULT was unsorted, but it calls it a leaderboard. | FR-07 |
+| 31 | 2026-10-12 | Phase 2 delivery uses one coordinator mutex and direct, bounded socket writes (200 ms send timeout) instead of a dedicated writer thread and outbound queue. See architecture.md. | Simplest design that still guarantees reply-before-push. Human chose it at Gate 1. | FR-24, T35 |
+| 32 | 2026-10-12 | Ctrl+C is handled with a wake-up pipe; the server logs `server shutting down` and sends no protocol message. | The protocol defines no push for server shutdown. | T13 |
+| 33 | 2026-10-12 | After the server ends a session on purpose it half-closes, waits up to 0.5 s for the client to close, then closes. | Closing a socket that still has unread input resets the connection and can drop the final GAME_END message. | T07, T08 |
+| 34 | 2026-10-12 | If the client's standard input reaches end-of-file, it closes the connection without sending QUIT, exits with status 0, and keeps the saved session file. The server treats this as an unexpected disconnect, so the player can RECONNECT. | Human chose this at Gate 1 (protocol 6.4 treats a missing QUIT as an unexpected disconnect). | FR-21 |
+| 35 | 2026-10-12 | The client handles `help` itself and uppercases the command word (arguments keep their case) before sending; a bare `RECONNECT` expands the saved session into a full command. Neither `help` nor a bare RECONNECT reaches the server. | Makes the terminal friendlier while the wire protocol stays case-sensitive. | FR-20, T12 |
+| 36 | 2026-10-12 | A GAME_END push makes the client print the final results, delete its session file, and exit with status 0. A server close while the client waits for input or a reply prints a message and exits with status 0. | Required by T07 and T29; the session file is only for resuming a live game. | FR-09, FR-20, T29 |
+| 37 | 2026-10-12 | `protocol.*` lives in `src/common/` instead of `src/server/`, because the client reuses it to check input shape before sending. | Avoids duplicating the command rules. NFR-08 separation is unchanged. | NFR-08 |
+

@@ -2,15 +2,15 @@
 
 Status checklist (tick when the slice's tests pass and its walkthrough entry exists):
 
-- [ ] Slice 0: Skeleton
-- [ ] Slice 1: Framing and connection layer
-- [ ] Slice 2: Protocol parser and validator
-- [ ] Slice 3: Game logic
-- [ ] Slice 4: Logging and configuration
-- [ ] Slice 5: Server runtime
-- [ ] Slice 6: Client
-- [ ] Slice 7: Scripted failure scenarios and results
-- [ ] Slice 8: Deliverables
+- [x] Slice 0: Skeleton
+- [x] Slice 1: Framing and connection layer
+- [x] Slice 2: Protocol parser and validator
+- [x] Slice 3: Game logic
+- [x] Slice 4: Logging and configuration
+- [x] Slice 5: Server runtime
+- [x] Slice 6: Client
+- [x] Slice 7: Scripted failure scenarios and results
+- [x] Slice 8: Deliverables
 
 Test IDs refer to docs/test-plan.md. "Phase 3" tests are written as unit tests where possible but not run over real simultaneous sockets until Phase 3.
 

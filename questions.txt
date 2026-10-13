@@ -1,0 +1,28 @@
+# TermTrivia question bank.
+# Format: question text|option A|option B|option C|option D|correct letter
+What is the capital of France?|London|Paris|Berlin|Madrid|B
+Which planet is known as the Red Planet?|Venus|Jupiter|Mars|Mercury|C
+How many continents are there on Earth?|Five|Six|Seven|Eight|C
+What is the largest ocean on Earth?|Atlantic|Pacific|Indian|Arctic|B
+Who wrote the play Romeo and Juliet?|Charles Dickens|Mark Twain|William Shakespeare|Jane Austen|C
+What is the chemical symbol for water?|O2|CO2|H2O|HO|C
+Which animal is the largest mammal?|African elephant|Blue whale|Giraffe|Hippopotamus|B
+In which year did World War II end?|1943|1944|1945|1946|C
+What is the hardest natural substance?|Gold|Iron|Quartz|Diamond|D
+Which gas do plants absorb from the air?|Oxygen|Nitrogen|Carbon dioxide|Helium|C
+How many sides does a hexagon have?|Five|Six|Seven|Eight|B
+What is the smallest prime number?|0|1|2|3|C
+Which country is home to the kangaroo?|Australia|Brazil|India|Canada|A
+What is the capital of Japan?|Seoul|Beijing|Tokyo|Bangkok|C
+Which language is mainly spoken in Brazil?|Spanish|Portuguese|French|English|B
+How many minutes are in one hour?|50|60|70|100|B
+Which planet is closest to the Sun?|Mercury|Venus|Earth|Mars|A
+What is the freezing point of water in Celsius?|-10|0|10|32|B
+Who painted the Mona Lisa?|Vincent van Gogh|Pablo Picasso|Leonardo da Vinci|Claude Monet|C
+Which instrument has black and white keys?|Guitar|Violin|Piano|Flute|C
+What is the largest planet in our solar system?|Saturn|Jupiter|Neptune|Earth|B
+How many players are on a soccer team on the field?|Nine|Ten|Eleven|Twelve|C
+What is the capital of Canada?|Toronto|Vancouver|Montreal|Ottawa|D
+Which metal is liquid at room temperature?|Mercury|Iron|Copper|Silver|A
+What do bees produce?|Silk|Honey|Milk|Wax paper|B
+Which ocean lies between Europe and North America?|Pacific|Indian|Atlantic|Southern|C
