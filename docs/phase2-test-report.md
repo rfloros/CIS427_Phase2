@@ -10,7 +10,7 @@ Date of the final runs: 2026-10-12. Machine: Linux 7.2.5, `g++ (GCC) 16.2.1`, C+
 |---|---|---|
 | `make all` (from a clean tree) | build with `-std=c++17 -Wall -Wextra -pthread` | 0 warnings, `server` and `client` built |
 | `make test` | unit tests, real-socket tests, shell scenarios | all pass |
-| `build/unit_tests` | 109 tests: framing, protocol, question bank, game logic with a fake clock, logging, config | 109 passed, 0 check failures |
+| `build/unit_tests` | 110 tests: framing, protocol, question bank, game logic with a fake clock, logging, config | 110 passed, 0 check failures |
 | `build/integration_tests` | 50 tests: real server over sockets with fast timers; the real `Client` class against a fake server; startup failures | 50 passed, 0 check failures |
 | `bash tests/scripts/scenarios.sh` | the real binaries: bad input, framing, no server, bad ports, killed client and reconnect, server stopped, Ctrl+C, token never logged | 36 checks passed |
 | `build/integration_tests` x 10 | repeated stability runs | 10 of 10 runs: 50 tests, 0 failures |
@@ -74,3 +74,10 @@ logic level with a fake clock: a correct answer after 1 s and after 18 s both sc
   `make test` so it finishes in about 25 s; the default-timer script measures the real values.
 - The "red" step of each chunk was observed as a compile or link failure (the module did not exist
   yet) or a failing check before the implementation was written.
+
+## Gate 3 review
+
+An independent review of the whole diff found two game-logic defects, both fixed with a test that failed before the fix:
+a player joining during an intermission now receives the next question, and a correct answer still scores if the player
+disconnects before the round closes. The unit test count rose from 109 to 110 with the fix. The default-timer and
+ten-run results above were collected before this fix, which does not touch timing; `make test` was rerun after it and passes.
