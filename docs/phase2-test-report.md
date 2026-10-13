@@ -11,9 +11,9 @@ Date of the final runs: 2026-10-12. Machine: Linux 7.2.5, `g++ (GCC) 16.2.1`, C+
 | `make all` (from a clean tree) | build with `-std=c++17 -Wall -Wextra -pthread` | 0 warnings, `server` and `client` built |
 | `make test` | unit tests, real-socket tests, shell scenarios | all pass |
 | `build/unit_tests` | 110 tests: framing, protocol, question bank, game logic with a fake clock, logging, config | 110 passed, 0 check failures |
-| `build/integration_tests` | 50 tests: real server over sockets with fast timers; the real `Client` class against a fake server; startup failures | 50 passed, 0 check failures |
+| `build/integration_tests` | 51 tests: real server over sockets with fast timers; the real `Client` class against a fake server; startup failures | 51 passed, 0 check failures |
 | `bash tests/scripts/scenarios.sh` | the real binaries: bad input, framing, no server, bad ports, killed client and reconnect, server stopped, Ctrl+C, token never logged | 36 checks passed |
-| `build/integration_tests` x 10 | repeated stability runs | 10 of 10 runs: 50 tests, 0 failures |
+| `build/integration_tests` x 10 | repeated stability runs | 10 of 10 runs: 51 tests, 0 failures |
 | `make test-default-timers` | real 20/5/10/60 second timers | 9 checks passed (below) |
 | `bash scripts/demo.sh` | the live-demo script end to end | succeeded, output matches the log lines |
 
@@ -47,6 +47,8 @@ logic level with a fake clock: a correct answer after 1 s and after 18 s both sc
 - **Descriptor reuse:** 30 rapid games on fresh connections (half ended by the timer, half by
   QUIT); the first message on every new connection was its own reply, and the server accepted a
   new client afterwards.
+- **Stalled client (added after the Gate 3 review):** a client that floods commands and never reads is
+  dropped by the 200 ms send timeout (`disconnected: send failed`), and the next client is served.
 - **Ctrl+C:** while blocked in `accept` and while blocked in `recv`: exit status 0, `server
   shutting down` logged, no protocol message sent.
 - **Tokens:** the unit, socket, and shell tests search the log for real tokens; none appear.

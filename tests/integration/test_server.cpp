@@ -496,3 +496,40 @@ TEST_CASE("T13 the server log records connections, requests, errors, and disconn
     }
     CHECK(log.find(game.token) == std::string::npos);
 }
+
+TEST_CASE("Slice5 a client that stops reading is dropped by the send timeout and the next client is served") {
+    TestServer server;
+    const int stalled = socket(AF_INET, SOCK_STREAM, 0);
+    int small = 4096;
+    setsockopt(stalled, SOL_SOCKET, SO_RCVBUF, &small, sizeof(small));
+    sockaddr_in address{};
+    address.sin_family = AF_INET;
+    address.sin_port = htons(static_cast<uint16_t>(server.port()));
+    inet_pton(AF_INET, "127.0.0.1", &address.sin_addr);
+    CHECK_EQ(connect(stalled, reinterpret_cast<sockaddr*>(&address), sizeof(address)), 0);
+
+    // Every HELLO draws an error reply; never reading them fills the server's
+    // send buffer until a write blocks for the 200 ms timeout.
+    std::string flood;
+    while (flood.size() < 256 * 1024) flood += "HELLO\n";
+    const auto start = std::chrono::steady_clock::now();
+    size_t sent_total = 0;
+    while (seconds_since(start) < 5.0 && sent_total < 64 * flood.size()) {
+        const ssize_t sent = send(stalled, flood.data(), flood.size(), MSG_DONTWAIT | MSG_NOSIGNAL);
+        if (sent > 0) sent_total += static_cast<size_t>(sent);
+        else std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    }
+
+    // The stalled client holds the only handler, so this one is served only
+    // after the timeout removed the stalled connection.
+    RawClient next(server.port());
+    CHECK(next.connected());
+    const Created game = create_game(next, "Robert", 1);
+    CHECK_EQ(game.code.size(), static_cast<size_t>(4));
+    CHECK(seconds_since(start) < 6.0);
+    close(stalled);
+
+    const std::string log = server.log_text();
+    CHECK(log.find("client 1 disconnected: send failed") != std::string::npos);
+    CHECK(log.find("client 2 request CREATE_GAME -> 200") != std::string::npos);
+}
