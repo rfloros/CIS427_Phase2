@@ -10,18 +10,18 @@
 | Build tested | git commit `8750e774e46c87e9d72d6068c5a390e79bc84a7f` on branch `main` (repository `rfloros/CIS427_Phase2`) |
 | Protocol version | Revision 2 (`docs/protocol.md`), plus the clarifications in `docs/design-change-summary.md` |
 | Test plan | `docs/test-plan.md` (39 tests, T01 to T39) |
-| Date of the runs below | 2026-10-13 (verification run); earlier development runs 2026-10-12 |
-| Who ran the tests | Automated suites written with the code. Verification run for this report: Claude (AI assistant) at Robert's request. **Robert: rerun the commands in section 8 on your own machine and fill in the box in section 2.** |
+| Date of the runs below | 2026-10-13 (both verification runs); earlier development runs 2026-10-12 |
+| Who ran the tests | Automated suites written with the code. Verification run 1 (cloud VM, 2026-10-13): Claude (AI assistant) at Robert's request. Verification run 2 (Robert's own machine, 2026-10-13): Robert. Both runs used the commands in section 8. |
 
 ## 2. Test environment
 
-| Item | Verification run (used for the numbers in this report) | Your machine (fill in) |
+| Item | Cloud VM run | Robert's machine |
 |---|---|---|
-| OS | Ubuntu 24.04.5 LTS, Linux 6.18.44 x86_64 | |
-| Compiler | g++ 13.3.0, `-std=c++17 -Wall -Wextra -pthread`, no warnings | |
-| Hardware | cloud VM, 2 CPUs, 7.8 GiB RAM | |
-| Network | everything on one machine over localhost (127.0.0.1); no separate machines | |
-| Dependencies | none beyond the C++ standard library and POSIX sockets; test framework is our own `tests/minitest.h` | |
+| OS | Ubuntu 24.04.5 LTS, Linux 6.18.44 x86_64 | Omarchy 4.0.4 (Arch-based), Linux 7.2.5-3-omarchy x86_64 |
+| Compiler | g++ 13.3.0, `-std=c++17 -Wall -Wextra -pthread`, no warnings | g++ (GCC) 16.2.1 20260810, same flags |
+| Hardware | cloud VM, 2 CPUs, 7.8 GiB RAM | Personal computer, 8 logical CPUs, 15 GiB RAM |
+| Network | everything on one machine over localhost (127.0.0.1); no separate machines | Same: one machine, localhost (127.0.0.1) |
+| Dependencies | none beyond the C++ standard library and POSIX sockets; test framework is our own `tests/minitest.h` | Same |
 
 ## 3. Scope and approach
 
@@ -142,7 +142,7 @@ Expected results come from `docs/protocol.md` (revision 2), `docs/requirements.m
 
 ## 6. Evidence
 
-### 6.1 Automated test output (verification run, 2026-10-13)
+### 6.1 Automated test output (cloud VM run and Robert's run gave the same result, 2026-10-13)
 
 `make test`, summary lines:
 
@@ -197,15 +197,16 @@ PASS T28c reconnect after 61 s is the generic 410
 all checks passed
 ```
 
-| Measurement | Spec | Measured |
-|---|---|---|
-| Reply to START_ROUND | under 500 ms | 1 ms |
-| First question after START_ROUND | under 1 s | 1 ms |
-| Question window | 20 s plus or minus 1 s | 20.012 s |
-| Intermission | 5 s plus or minus 1 s | 5.005 s |
-| Final intermission | 10 s plus or minus 1 s | 10.005 s |
-| Reconnect 25 s after a disconnect | allowed | 200 OK, host powers kept |
-| Reconnect 61 s after a disconnect | refused | 410 |
+| Measurement | Spec | Cloud VM | Robert's machine |
+|---|---|---|---|
+| Reply to START_ROUND | under 500 ms | 1 ms | 0 ms |
+| First question after START_ROUND | under 1 s | 1 ms | 0 ms |
+| Question window | 20 s plus or minus 1 s | 20.012 s | 20.018 s |
+| Intermission | 5 s plus or minus 1 s | 5.005 s | 5.020 s |
+| Final question window | 20 s plus or minus 1 s | 20.005 s | 20.020 s |
+| Final intermission | 10 s plus or minus 1 s | 10.005 s | 10.020 s |
+| Reconnect 25 s after a disconnect | allowed | 200 OK, host powers kept | same |
+| Reconnect 61 s after a disconnect | refused | 410 | same |
 
 ### 6.3 Server log sample (`docs/sample_server.log`)
 
@@ -275,11 +276,11 @@ bash scripts/demo.sh     # scripted run that prints the server log lines
 
 ## 9. Conclusion
 
-TermTrivia meets the Phase 2 requirements. One client can create a game, play every round on the real timers, view the leaderboard, quit or end the game, be killed and reconnect within 60 seconds, and be refused with the specified codes for every invalid case we tried. Malformed and split input never crashed the server, and shutdown with Ctrl+C is clean. The server log is timestamped and never contains a token.
+On both machines (cloud VM and Robert's computer), `make test` ran 110 unit tests, 51 socket tests and all scripted scenarios with no failures, and `make test-default-timers` passed all its checks. TermTrivia meets the Phase 2 requirements. One client can create a game, play every round on the real timers, view the leaderboard, quit or end the game, be killed and reconnect within 60 seconds, and be refused with the specified codes for every invalid case we tried. Malformed and split input never crashed the server, and shutdown with Ctrl+C is clean. The server log is timestamped and never contains a token.
 
 **Remaining risks:**
 1. Several clients at once is untested at the socket level. The game logic is tested for it, but T36, T37 and T39 are still to be run in Phase 3.
 2. Tests ran on localhost only. Real network delay was not tested.
-3. The numbers in this report come from one verification environment. Run section 8 on your own machine before submitting.
+3. Both runs were on Linux with g++ (13.3 and 16.2). Other platforms were not tried.
 
 **Fix first in Phase 3:** run the pending multi-client tests, then decide what happens to a game whose host never returns.
