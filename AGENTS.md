@@ -332,6 +332,32 @@ At Gate 3, both engines will then appear in `code-authors`, so Gate 3 uses split
 
 **When a reviewer runs out** (Critic or Reviewer): that is a failed attempt (`quota`, section 8.4). No round is used, nobody else takes over the review, and the human decides whether to wait or proceed.
 
+### 5.7 Launching Gate 2 from the other engine's session (no polling)
+
+Use this when the human is sitting in one engine's session (the **host**, for example Codex) and the Implementer is the other engine (for example Claude). The goal is that the host costs nothing while the Implementer builds.
+
+1. **Write the handoff** to `.agentloop/runs/<run-id>/gate2-handoff.md`. It must tell the Implementer to follow section 5 through 5.5 and then **stop**. It must **not** run Gate 3. The host starts Gate 3 after the human says so.
+2. **Launch with the launcher script, as a plain command** (nothing before or after it, no redirection), from the repo root:
+
+   ```bash
+   /home/rfloros/agent-workflow/bin/agentloop-gate2 --run .agentloop/runs/<run-id> --model <implementer model>
+   ```
+
+   The script starts the Implementer detached, writes `gate2.pid`, `gate2.out` and, when it exits, `gate2.done` (the exit code), and sends a desktop notification. It must be a pre-approved command (section 12), because a background process started inside the host's sandbox is killed when the host's turn ends, and the sandbox has no network. Never launch the Implementer by hand and never edit the script.
+
+3. **End your turn immediately.** Tell the human it is running, where `gate2.out` is, and that you will not check on it by yourself.
+4. **Never poll.** Do not sleep, tail, re-read `gate2.out`, or re-check git on your own initiative. Every extra turn re-reads the whole conversation and burns the host's usage while the Implementer works.
+5. **Check only when the human asks** ("check on Gate 2", "status"). Do one status command, report, and stop:
+
+   ```bash
+   cat $RUN/gate2.done 2>/dev/null || echo running
+   git log --oneline "$(cat $RUN/base-sha)..HEAD"
+   tail -n 20 $RUN/gate2.out
+   ```
+
+6. **Gate 2 is finished** only when `gate2.done` exists and contains `0`, `reviewed-sha` is written, and the tree is clean. Then wait for the human to say to start Gate 3. A non-zero code or a usage-limit message means section 5.6 applies.
+7. **The notification is the "done" signal.** A running interactive session cannot be woken from outside, so the human relays it: when the notification appears, tell the host "Gate 2 is done, start Gate 3." That is one cheap turn.
+
 ---
 
 ## 6. Handling findings (Gates 1 and 3)
@@ -778,6 +804,7 @@ Re-run Discovery whenever the human asks, for example after adding a payments fe
   - **Claude as Author:** `~/.claude/settings.json` has `permissions.allow` entries for `Bash(/home/rfloros/agent-workflow/bin/agentloop-critic *)` and the `~/` form.
 
   This is safe only because the wrapper's flags are fixed inside it, and the wrapper sits outside every project, where no sandboxed agent can edit it. **Never broaden either rule to plain `claude` or `codex`.** Prefix rules match only the start of a command, so a broader rule would also allow dangerous flags appended to the end.
+- **Gate 2 launcher pre-approval (section 5.7).** `~/.codex/rules/agentloop.rules` needs a second `prefix_rule` allowing `/home/rfloros/agent-workflow/bin/agentloop-gate2` (same shape as the wrapper rule). Without it, Codex's sandbox kills the background build when its turn ends. Never broaden it to plain `claude`.
 - **Verified in v2.7:** with the rule in place, Codex (`workspace-write` sandbox, `approval: never`) ran the wrapper and Claude's critique completed (`ok`). Claude as Author, with permission prompts disabled, ran the wrapper and Codex's critique completed (`ok`, 0 denials).
 - **Moving to another machine or username:** the absolute path `/home/rfloros/...` appears in section 8.3, in the Codex rule file, and in the Claude permission settings. Update all three together.
 - **Verified in v2.1:** the Codex session id is `thread_id` in the `thread.started` event, and `codex exec --sandbox read-only resume <thread_id>` restores the conversation.
