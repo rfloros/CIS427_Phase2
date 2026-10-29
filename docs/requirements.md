@@ -6,7 +6,7 @@
 Each requirement has an ID, the protocol section that defines it, the phase in which it can be demonstrated, and the tests that verify it (section 5.8). Phase 2 means it can be demonstrated with one client connected to the server. Phase 3 means it needs several clients connected at the same time.
 ### Must have
 - **FR-01** The client shall let a user create a game by giving a host name and a number of questions (CREATE_GAME) and shall display the join code that the server returns. Protocol 4.1. Phase 2. Tests: T01.
-- **FR-02** The client shall let a user join a game with a join code and a name (JOIN_GAME), including after the game has started. Protocol 4.2. Phase 3. Tests: T11.
+- **FR-02** The client shall let a user join a game with a join code and a name (JOIN_GAME), including after the game has started and during the final intermission, when the player receives no question but appears in the final standings. Protocol 4.2. Phase 3. Tests: T11, T41, T43.
 - **FR-03** The host shall be able to start the game once (START_ROUND). After that, every round and intermission advances automatically on a timer. Protocol 4.3. Phase 2. Tests: T02, T35.
 - **FR-04** The client shall display every question pushed by the server as soon as it arrives, even while the user is idle at the prompt. Protocol 5.1 and 2.3. Phase 2. Tests: T02, T34.
 - **FR-05** The client shall let a player submit an answer A, B, C, or D (SUBMIT_ANSWER) while a round is open. Protocol 4.4. Phase 2. Tests: T03.
@@ -29,6 +29,7 @@ Each requirement has an ID, the protocol section that defines it, the phase in w
 ### Graceful disconnection
 - **FR-21** If a client disconnects unexpectedly, the server shall keep the player's name and score for 60 seconds, shall not count the player as active when deciding whether everyone has answered, and shall keep running. Protocol 6.4. Phase 2. Tests: T26.
 - **FR-22** If the host disconnects unexpectedly, the game shall continue. The host can reconnect within 60 seconds and keeps host powers. Protocol 1. Phase 2. Tests: T30.
+- **FR-26** If the host's 60-second reconnect window expires while the game is still in the LOBBY, the server shall end the game, send each connected player GAME_END with reason HOST_EXPIRED and the final standings, close their connections, and remove the game and every pending reconnect slot. If it expires after START_ROUND, the game shall continue to its normal COMPLETE ending, nobody shall gain host powers, and the expired host shall be removed from later standings. Protocol 4.6 and 5.3. Phase 3. Tests: T42, T47.
 ### Shared server data
 - **FR-23** The server shall keep a separate score for every player in every game, and shall support several games at once without one affecting another. Phase 3. Tests: T36, T38.
 ### Protocol handling and logging

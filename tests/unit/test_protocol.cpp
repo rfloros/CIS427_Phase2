@@ -181,6 +181,10 @@ TEST_CASE("Slice2 push builders are byte exact") {
           Lines({"PUSH GAME_END COMPLETE", "FINAL RESULTS", "Matthew:5", "Robert:4"}));
     CHECK(push_game_end(GameEndReason::HostEnded, {})[0] == "PUSH GAME_END HOST_ENDED");
     CHECK(push_game_end(GameEndReason::HostQuit, {})[0] == "PUSH GAME_END HOST_QUIT");
+    CHECK(push_game_end(GameEndReason::HostExpired, {{"Matthew", 0}}) ==
+          Lines({"PUSH GAME_END HOST_EXPIRED", "FINAL RESULTS", "Matthew:0"}));
+    CHECK_EQ(std::string(game_end_reason_text(GameEndReason::HostExpired)),
+             std::string("HOST_EXPIRED"));
 }
 
 TEST_CASE("Slice2 order standings puts highest score first and keeps join order for ties") {

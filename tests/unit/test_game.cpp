@@ -621,6 +621,7 @@ TEST_CASE("Slice3 game is removed when every player is pending and all windows e
     World world;
     const Session s = create(world, 1, "Robert", 3);
     join(world, 2, s.code, "Matthew");
+    start(world, 1);  // a started game outlives an expired host (see T47)
     world.manager.on_disconnect(1, world.now);
     world.tick_at(10);
     world.manager.on_disconnect(2, world.now);
@@ -707,6 +708,132 @@ TEST_CASE("Slice3 timer closes rounds for every game independently") {
     world.tick_at(10.5);  // game A at 20.5s, game B at 10.5s
     CHECK(*world.manager.game_state(a.code) == GameState::Intermission);
     CHECK(*world.manager.game_state(b.code) == GameState::QuestionActive);
+}
+
+TEST_CASE("T42 host expires in a lobby: players get HOST_EXPIRED and close, the lobby is gone") {
+    World world;
+    const Session s = create(world, 1, "Robert", 3);
+    join(world, 2, s.code, "Matthew");
+    world.manager.on_disconnect(1, world.now);
+    CHECK(world.tick_at(59).effects.empty());
+    const Outcome outcome = world.tick_at(2);  // 61 s: the window is over
+    CHECK_EQ(outcome.effects.size(), static_cast<size_t>(1));
+    const Effect* end = effect_for(outcome, 2);
+    CHECK(end != nullptr);
+    if (end != nullptr) {
+        CHECK(end->lines == Lines({"PUSH GAME_END HOST_EXPIRED", "FINAL RESULTS", "Matthew:0"}));
+        CHECK(end->close_after);
+    }
+    CHECK_EQ(world.manager.game_count(), static_cast<size_t>(0));
+    CHECK(!world.manager.is_joined(2));
+    CHECK_EQ(world.run(3, "RECONNECT Robert " + s.code + " " + s.token).code, 410);
+    bool logged = false;
+    for (const auto& event : world.all_events) {
+        logged = logged || event == "game " + s.code + " ended: HOST_EXPIRED";
+    }
+    CHECK(logged);
+}
+
+TEST_CASE("T42 an all-pending lobby is removed with every reconnect slot when the host expires") {
+    World world;
+    const Session s = create(world, 1, "Robert", 3);
+    const Session m = join(world, 2, s.code, "Matthew");
+    world.manager.on_disconnect(1, world.now);
+    world.tick_at(10);
+    world.manager.on_disconnect(2, world.now);
+    const Outcome outcome = world.tick_at(55);  // host expired at 65 s; Matthew is still inside his window
+    CHECK(outcome.effects.empty());
+    CHECK_EQ(world.manager.game_count(), static_cast<size_t>(0));
+    CHECK_EQ(world.run(3, "RECONNECT Matthew " + s.code + " " + m.token).code, 410);
+    CHECK_EQ(world.run(3, "RECONNECT Robert " + s.code + " " + s.token).code, 410);
+}
+
+TEST_CASE("T42 expiry and reconnect race: a reconnect inside the window wins, one after it loses") {
+    World won;
+    const Session s = create(won, 1, "Robert", 3);
+    join(won, 2, s.code, "Matthew");
+    won.manager.on_disconnect(1, won.now);
+    won.now += 59;
+    CHECK_EQ(won.run(3, "RECONNECT Robert " + s.code + " " + s.token).code, 200);
+    CHECK(won.tick_at(5).effects.empty());
+    CHECK_EQ(won.manager.game_count(), static_cast<size_t>(1));
+
+    World lost;
+    const Session t = create(lost, 1, "Robert", 3);
+    join(lost, 2, t.code, "Matthew");
+    lost.manager.on_disconnect(1, lost.now);
+    lost.now += 61;
+    CHECK_EQ(lost.run(3, "RECONNECT Robert " + t.code + " " + t.token).code, 410);
+    const Outcome outcome = lost.tick_at(0);
+    CHECK(effect_for(outcome, 2) != nullptr);
+    if (effect_for(outcome, 2) != nullptr) {
+        CHECK_EQ(effect_for(outcome, 2)->lines[0], std::string("PUSH GAME_END HOST_EXPIRED"));
+    }
+}
+
+TEST_CASE("T47 host expires during play: the game runs to COMPLETE and nobody gets host powers") {
+    World world(6, 7, Timings{20, 5, 10, 30});  // the host expires mid-game
+    const Session s = create(world, 1, "Robert", 2);
+    join(world, 2, s.code, "Matthew");
+    start(world, 1);
+    world.manager.on_disconnect(1, world.now);
+    bool expired_push = false;
+    bool ended = false;
+    Lines last_end;
+    for (int step = 0; step < 400 && !ended; ++step) {
+        const Outcome outcome = world.tick_at(1);
+        for (const auto& effect : outcome.effects) {
+            expired_push = expired_push || effect.lines[0] == "PUSH GAME_END HOST_EXPIRED";
+            if (is_push(effect.lines, "GAME_END")) {
+                ended = true;
+                last_end = effect.lines;
+            }
+        }
+        if (step == 40) {
+            CHECK_EQ(world.run(2, "START_ROUND").code, 402);
+            CHECK_EQ(world.run(2, "END_GAME").code, 402);
+            CHECK_EQ(world.run(3, "RECONNECT Robert " + s.code + " " + s.token).code, 410);
+        }
+    }
+    CHECK(!expired_push);
+    CHECK(ended);
+    CHECK(last_end == Lines({"PUSH GAME_END COMPLETE", "FINAL RESULTS", "Matthew:0"}));
+    CHECK_EQ(world.manager.game_count(), static_cast<size_t>(0));
+}
+
+TEST_CASE("T47 an expired host is absent from the next ROUND_RESULT") {
+    World world;
+    const Session s = create(world, 1, "Robert", 3);
+    join(world, 2, s.code, "Matthew");
+    start(world, 1);
+    world.manager.on_disconnect(1, world.now);
+    world.tick_at(19);  // question still open, host still inside its window
+    const Outcome result = world.tick_at(70);
+    const Effect* push = effect_for(result, 2);
+    CHECK(push != nullptr);
+    if (push != nullptr) {
+        CHECK(is_push(push->lines, "ROUND_RESULT 1"));
+        for (const auto& line : push->lines) CHECK(line.find("Robert") == std::string::npos);
+    }
+    CHECK(!world.manager.player_state(s.code, "Robert").has_value());
+}
+
+TEST_CASE("T43 a player who joins in the final intermission sees no question and is in the final results") {
+    World world;
+    const Session s = create(world, 1, "Robert", 1);
+    const Lines question = start(world, 1);
+    world.run(1, std::string("SUBMIT_ANSWER ") + correct_for(question));  // closes the only round
+    CHECK(*world.manager.game_state(s.code) == GameState::Intermission);
+    CHECK_EQ(world.run(2, "JOIN_GAME " + s.code + " Late").code, 200);
+    const Outcome outcome = world.tick_at(11);
+    CHECK_EQ(count_for(outcome, 2), static_cast<size_t>(1));
+    const Effect* end = effect_for(outcome, 2);
+    CHECK(end != nullptr);
+    if (end != nullptr) {
+        CHECK(end->lines == Lines({"PUSH GAME_END COMPLETE", "FINAL RESULTS", "Robert:1", "Late:0"}));
+        CHECK(end->close_after);
+    }
+    CHECK_EQ(world.manager.game_count(), static_cast<size_t>(0));
 }
 
 #include "server/random_seed.h"

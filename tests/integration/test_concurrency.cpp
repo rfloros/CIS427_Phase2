@@ -547,3 +547,85 @@ TEST_CASE("T44 a join racing a rolled-back creation cannot enter the doomed game
     CHECK_EQ(join_reply.lines[0].substr(0, 3), std::string("404"));
     CHECK(creator.next(500).lines.empty());
 }
+
+TEST_CASE("T42 socket: host drops from a lobby, the player gets HOST_EXPIRED then EOF, old tokens die") {
+    TestServer server;  // 1.0 s reconnect window
+    RawClient host(server.port());
+    const Created game = create_game(host, "Robert", 3);
+    RawClient bob(server.port());
+    const Message bob_join = join(bob, "Bob", game.code);
+    host.kill();
+    const Message end = bob.next(3000);
+    CHECK(end.lines == std::vector<std::string>({"PUSH GAME_END HOST_EXPIRED", "FINAL RESULTS", "Bob:0"}));
+    CHECK(bob.wait_for_close());
+    RawClient late(server.port());
+    CHECK_EQ(late.request("RECONNECT Robert " + game.code + " " + game.token).lines[0].substr(0, 3),
+             std::string("410"));
+    CHECK_EQ(late.request("RECONNECT Bob " + game.code + " " + bob_join.lines[2]).lines[0].substr(0, 3),
+             std::string("410"));
+    CHECK(server.log_text().find("ended: HOST_EXPIRED") != std::string::npos);
+}
+
+TEST_CASE("T42 socket: an all-pending lobby is removed when the host's window ends") {
+    TestServer server;
+    RawClient host(server.port());
+    const Created game = create_game(host, "Robert", 3);
+    RawClient bob(server.port());
+    const Message bob_join = join(bob, "Bob", game.code);
+    host.kill();
+    bob.kill();
+    std::this_thread::sleep_for(std::chrono::milliseconds(1400));
+    RawClient late(server.port());
+    CHECK_EQ(late.request("RECONNECT Bob " + game.code + " " + bob_join.lines[2]).lines[0].substr(0, 3),
+             std::string("410"));
+    CHECK_EQ(join(late, "Sam", game.code).lines[0].substr(0, 3), std::string("404"));
+}
+
+TEST_CASE("T47 socket: host expires during play, the game still reaches COMPLETE") {
+    Timings timings = fast_timings();
+    timings.question = 0.4;
+    timings.reconnect = 0.5;
+    TestServer server(timings);
+    RawClient host(server.port());
+    const Created game = create_game(host, "Robert", 3);
+    RawClient bob(server.port());
+    const Message bob_join = join(bob, "Bob", game.code);
+    host.send_line("START_ROUND");
+    host.next();
+    host.next();
+    host.kill();
+
+    bool saw_expired = false;
+    Message last;
+    while (true) {
+        Message message;
+        if (bob.read_message(message, 4000) != RawClient::Read::Message) break;
+        saw_expired = saw_expired || is_kind(message, "GAME_END HOST_EXPIRED");
+        last = message;
+    }
+    CHECK(!saw_expired);
+    CHECK(last.lines == std::vector<std::string>({"PUSH GAME_END COMPLETE", "FINAL RESULTS", "Bob:0"}));
+    RawClient late(server.port());
+    CHECK_EQ(late.request("RECONNECT Robert " + game.code + " " + game.token).lines[0].substr(0, 3),
+             std::string("410"));
+}
+
+TEST_CASE("T43 socket: a join in the final intermission gets no question and GAME_END COMPLETE") {
+    Timings timings = fast_timings();
+    timings.final_intermission = 0.8;
+    TestServer server(timings);
+    RawClient host(server.port());
+    const Created game = create_game(host, "Robert", 1);
+    host.send_line("START_ROUND");
+    host.next();
+    const Message question = host.next();
+    host.send_line(std::string("SUBMIT_ANSWER ") + correct_for(question));
+    host.next();
+    CHECK(is_kind(host.next(), "ROUND_RESULT 1"));
+
+    RawClient late(server.port());
+    CHECK_EQ(join(late, "Late", game.code).lines[0], std::string("200 OK"));
+    const Message end = late.next(3000);
+    CHECK(end.lines == std::vector<std::string>({"PUSH GAME_END COMPLETE", "FINAL RESULTS", "Robert:1", "Late:0"}));
+    CHECK(late.wait_for_close());
+}

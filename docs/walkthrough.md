@@ -255,3 +255,6 @@ Template for each entry:
   - What if a thread cannot be created? The client is closed or the new game is rolled back, and the
     server keeps running (T44).
 - **Try it yourself:** `build/integration_tests T40`
+- **Host expiry and late joins (Phase 3):** if a host never comes back, a lobby ends with
+  `GAME_END HOST_EXPIRED`; a started game carries on to COMPLETE with no host (`expire_pending_players`
+  in `src/server/game.cpp`). A join in the final intermission is accepted and shown in the final results.

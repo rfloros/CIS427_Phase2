@@ -115,7 +115,7 @@ private:
     void close_round(Game& game, double now, Outcome& outcome);
     bool round_is_complete(const Game& game) const;
     void end_game(Game& game, GameEndReason reason, ConnId skip_conn, Outcome& outcome);
-    void expire_pending_players(Game& game, double now, Outcome& outcome);
+    bool expire_pending_players(Game& game, double now, Outcome& outcome);
     void advance_game(Game& game, double now, Outcome& outcome);
     void tick_game_locked(const std::string& code, double now, Outcome& outcome);
     std::vector<Standing> standings(const Game& game) const;

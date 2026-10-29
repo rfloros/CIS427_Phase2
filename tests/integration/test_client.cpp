@@ -333,6 +333,19 @@ TEST_CASE("Slice6 GAME_END push removes the session file and the client exits wi
     CHECK(!load_session(h.session_path, saved));
 }
 
+TEST_CASE("T42 a HOST_EXPIRED push removes the session file and the client exits") {
+    Harness h("hostexpired");
+    h.start();
+    h.output.wait_for("> ");
+    save_session(h.session_path, Session{"Matthew", "AB12", "zz9Y"});
+    h.server_sends("PUSH GAME_END HOST_EXPIRED\nFINAL RESULTS\nMatthew:0\n\n");
+    CHECK(h.wait_done());
+    CHECK_EQ(h.exit_code.load(), 0);
+    CHECK(h.output.text().find("HOST_EXPIRED") != std::string::npos);
+    Session saved;
+    CHECK(!load_session(h.session_path, saved));
+}
+
 TEST_CASE("T29 server closes while the client waits at its prompt: message and clean exit") {
     Harness h("t29");
     h.start();

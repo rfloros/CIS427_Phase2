@@ -68,7 +68,7 @@ Lets a player (or the host, using the same command) join an existing game.
 **Request:** JOIN_GAME <code> <name>
 - code: required, 4-character alphanumeric, case-insensitive.
 - name: required, 1 to 20 characters, no spaces and no colon.
-**Server behavior:** Checks that the code exists and the name is not already used in that game, adds the player with score 0, and generates their private token. If the game is QUESTION_ACTIVE or INTERMISSION, the player is marked WAITING, does not receive the in-progress question, and starts at the next question. If the game is in LOBBY, the player is ACTIVE immediately.
+**Server behavior:** Checks that the code exists and the name is not already used in that game, adds the player with score 0, and generates their private token. If the game is QUESTION_ACTIVE or INTERMISSION, the player is marked WAITING, does not receive the in-progress question, and starts at the next question. If the game is in LOBBY, the player is ACTIVE immediately. A join during the final INTERMISSION (after the last question's result) is accepted: the player receives no question, appears with score 0 in the final standings, receives PUSH GAME_END COMPLETE, and is then disconnected.
 **Success reply:** 200 OK, then <player_count> players in game <code>, then the token, then the blank line.
 **Errors:** 300, 404, 409. 300 also if the connection is already in a game; the state does not change.
 ```
@@ -128,7 +128,7 @@ s:
 Lets a player who was disconnected unexpectedly (host included) resume with their score intact. The join code and names are known to the whole group, so the private token is what proves this is the same player.
 **Request:** RECONNECT <name> <code> <token>
 The code and token must each be exactly 4 letters or digits and the name must be valid; otherwise the reply is 300. Tokens are case-sensitive. A RECONNECT on a connection that is already in a game also receives 300 and changes nothing.
-**Server behavior:** Looks for a DISCONNECTED_PENDING session matching name, code, and token, within the 60-second reconnect window. If all three match, the server reattaches the connection, restores score and state, and marks the player ACTIVE. A reconnecting host keeps host powers.
+**Server behavior:** Looks for a DISCONNECTED_PENDING session matching name, code, and token, within the 60-second reconnect window. If all three match, the server reattaches the connection, restores score and state, and marks the player ACTIVE. A reconnecting host keeps host powers. If the host's window expires before a reconnect, the host is removed. When that happens in the LOBBY the game ends (PUSH GAME_END HOST_EXPIRED, section 5.3). When it happens after START_ROUND the game continues to COMPLETE with no host: nobody gains host powers, and the expired host no longer appears in standings.
 **Success reply:** 200 OK, then <current_score> <question_number> (question_number is 0 in the LOBBY; during an INTERMISSION it is the number of the last question that was opened), then the blank line.
 ```
 c: RECONNECT Robert 7QXA K3M9
@@ -204,6 +204,7 @@ The reason is one of:
 - **COMPLETE** All questions were played (automatic end).
 - **HOST_ENDED** The host sent END_GAME.
 - **HOST_QUIT** The host deliberately quit.
+- **HOST_EXPIRED** The host disconnected in the LOBBY and did not reconnect within the reconnect window. The final standings list the players still in the game; the expired host is not among them. The server closes the sockets, and the game and every pending reconnect slot are removed.
 ## 6. General Protocol Requirements
 ### 6.1 Framing and encoding
 1. Client messages are one line ending in \n. Server messages are one or more \n-terminated lines followed by a blank line (section 2.2). A \r before a \n is ignored.
@@ -218,7 +219,7 @@ TCP is a byte stream, so one recv() can return part of a line, exactly one line,
 1. A recv() that returns 0 bytes means the peer closed the connection.
 The client also assembles lines into messages: it collects lines until an empty line, then dispatches the complete message as a push or a reply (section 2.3).
 ### 6.3 Atomic writes
-Each message is sent whole under a per-connection write lock, so a push from the timer thread can never be interleaved inside a reply written by a client-handler thread. For a command that produces both a reply and pushes, such as START_ROUND, the reply is written before the pushes to that client.
+Each message is sent whole under a per-connection write lock, so a push from a game's timer thread can never be interleaved inside a reply written by a client-handler thread. For a command that produces both a reply and pushes, such as START_ROUND, the reply is written before the pushes to that client. Each game has its own ordering lock that is held from the state change until all of its messages are written, so later events in the same game cannot overtake them, while different games write at the same time.
 ### 6.4 Sessions and behavior
 1. Connection initialization: there is no handshake. The first line a client sends is its first command.
 1. Session state: each connection is NOT_JOINED, ACTIVE, WAITING (joined during QUESTION_ACTIVE or INTERMISSION), or DISCONNECTED_PENDING. Each game is LOBBY, QUESTION_ACTIVE, INTERMISSION, or ENDED.
@@ -229,6 +230,6 @@ Each message is sent whole under a per-connection write lock, so a push from the
 1. Versioning: there is a single fixed protocol version with no negotiation.
 1. Server-initiated notifications: QUESTION, ROUND_RESULT, and GAME_END are pushed without a client request (a hybrid of request-response and server push), always tagged with PUSH.
 1. Case sensitivity: commands and player names are case-sensitive. SUBMIT_ANSWER choices and join codes are case-insensitive.
-1. Game ending: a game ends in exactly one of three ways: all questions are played (COMPLETE), the host sends END_GAME (HOST_ENDED), or the host deliberately quits (HOST_QUIT).
+1. Game ending: a game ends in exactly one of four ways: all questions are played (COMPLETE), the host sends END_GAME (HOST_ENDED), the host deliberately quits (HOST_QUIT), or the host's reconnect window expires while the game is still in the LOBBY (HOST_EXPIRED).
 1. Server-driven timing: after START_ROUND, a background timer mechanism, not any client command, closes each round, runs each intermission, and triggers the next question or the end of the game.
 1. Reconnect security: CREATE_GAME and JOIN_GAME each return a private 4-character token. RECONNECT requires name, code, and token together. Tokens are never shown to the user, included in LEADERBOARD or ROUND_RESULT output, or written to the server log.
