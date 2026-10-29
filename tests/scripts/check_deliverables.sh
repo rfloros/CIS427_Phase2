@@ -52,6 +52,12 @@ check "T49 sample log has no token-like secrets" bash -c '! grep -Eqi "token" do
 # ---- T50 draft zip ----------------------------------------------------------
 zip_path="$WORK/draft.zip"
 check "T50 package script creates one zip" bash scripts/package-phase3.sh "$zip_path"
+rel_dir="$WORK/rel-out"
+mkdir -p "$rel_dir"
+check "T50 relative output path is relative to the caller's directory" bash -c \
+    'cd "$1" && bash "$2/scripts/package-phase3.sh" rel.zip >/dev/null && test -s "$1/rel.zip" && ! test -e "$2/rel.zip"' \
+    _ "$rel_dir" "$ROOT"
+rm -f "$ROOT/rel.zip"
 listing=$(unzip -Z1 "$zip_path" 2>/dev/null)
 for needed in README.md Makefile questions.txt src/server/server.cpp tests/minitest.h \
     docs/phase3-technical-report.pdf docs/curiosity-report-original.txt \

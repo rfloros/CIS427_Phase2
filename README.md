@@ -21,6 +21,7 @@ Robert and Matthew (CIS 427).
 ## Required software
 
 - Linux, `g++` with C++17 support, GNU `make`, and `bash` (for the test scripts).
+- For `make test`'s deliverable check: `zip`, `unzip`, and `pdfinfo` (poppler-utils).
 - No other libraries, no package manager. The tests use our own `tests/minitest.h`.
 - Optional, only to rebuild the report PDF: LibreOffice (`soffice`) and `rsvg-convert`.
 

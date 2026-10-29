@@ -15,7 +15,9 @@ for arg in "$@"; do
     esac
 done
 
-mkdir -p "$(dirname "$output")"
+# Resolve against the caller's directory before the cd to the repo root below.
+mkdir -p "$(dirname "$output")" || exit 1
+output="$(cd "$(dirname "$output")" && pwd)/$(basename "$output")"
 rm -f "$output"
 cd "$root" || exit 1
 zip -qr -X "$output" README.md Makefile questions.txt src tests scripts docs \
