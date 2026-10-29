@@ -9,6 +9,7 @@
 #include <unistd.h>
 
 #include <chrono>
+#include <functional>
 #include <memory>
 #include <set>
 #include <sstream>
@@ -54,7 +55,8 @@ inline double seconds_since(std::chrono::steady_clock::time_point start) {
 
 class TestServer {
 public:
-    explicit TestServer(Timings timings = fast_timings(), int bank_size = 6, uint64_t seed = 1234)
+    explicit TestServer(Timings timings = fast_timings(), int bank_size = 6, uint64_t seed = 1234,
+                        std::function<bool(WorkerKind)> fail_worker_launch = nullptr)
         : logger_(log_stream_) {
         ServerOptions options;
         options.questions = make_bank(bank_size);
@@ -62,6 +64,7 @@ public:
         options.seed = seed;
         options.logger = &logger_;
         options.port = 0;
+        options.fail_worker_launch = std::move(fail_worker_launch);
         server_.reset(new Server(options));
         std::string error;
         started_ = server_->start(error);

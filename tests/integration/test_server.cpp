@@ -298,16 +298,13 @@ TEST_CASE("T30 host disconnect does not end the game; the host returns with host
     CHECK_EQ(again.request("END_GAME").lines[0], std::string("200 OK"));
 }
 
-TEST_CASE("Slice5 a second client waits in the backlog until the first leaves") {
+TEST_CASE("Slice5 a second client is served while the first is still connected") {
     TestServer server;
     RawClient first(server.port());
     create_game(first, "Robert", 2);
     RawClient second(server.port());
     second.send_line("CREATE_GAME Bob 2");
-    CHECK(second.next(300).lines.empty());  // not served yet
-    first.kill();
-    const Message reply = second.next();
-    CHECK_EQ(reply.lines[0], std::string("200 OK"));
+    CHECK_EQ(second.next(1000).lines[0], std::string("200 OK"));
 }
 
 TEST_CASE("Slice5 a client reset in the middle of a request does not hurt the server") {
@@ -520,8 +517,7 @@ TEST_CASE("Slice5 a client that stops reading is dropped by the send timeout and
         else std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
 
-    // The stalled client holds the only handler, so this one is served only
-    // after the timeout removed the stalled connection.
+    // The stalled client has its own handler, so this one is served at once.
     RawClient next(server.port());
     CHECK(next.connected());
     const Created game = create_game(next, "Robert", 1);

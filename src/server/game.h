@@ -40,6 +40,8 @@ struct Outcome {
     int code = 200;                        // reply code, for the request log
     std::vector<Effect> effects;           // deliver in this order
     std::vector<std::string> events;       // log lines; never contain tokens
+    std::string created_game;              // code of a game this call created
+    std::vector<std::string> ended_games;  // codes of games this call removed
 };
 
 class GameManager {
@@ -52,6 +54,13 @@ public:
     // Advances timers: closes rounds, opens questions, ends games, expires
     // reconnect windows. Call it often (every ~50 ms).
     Outcome tick(double now);
+    // The same for one game; a code that no longer exists gives an empty outcome.
+    Outcome tick_game(const std::string& code, double now);
+    // Removes a game just created whose timer could not start, as if it never was.
+    void discard_game(const std::string& code);
+
+    // The code of the game this connection is in, or empty.
+    std::string game_code_of(ConnId conn) const;
 
     int available_questions() const;
 
@@ -108,6 +117,7 @@ private:
     void end_game(Game& game, GameEndReason reason, ConnId skip_conn, Outcome& outcome);
     void expire_pending_players(Game& game, double now, Outcome& outcome);
     void advance_game(Game& game, double now, Outcome& outcome);
+    void tick_game_locked(const std::string& code, double now, Outcome& outcome);
     std::vector<Standing> standings(const Game& game) const;
 
     std::string random_text(const std::string& alphabet, size_t length);

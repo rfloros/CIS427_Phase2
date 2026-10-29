@@ -232,3 +232,26 @@ Template for each entry:
   - How do I see the real defaults working? `make test-default-timers`.
   - Which tests are still pending? Only the Phase 3 simultaneous-client tests.
 - **Try it yourself:** `bash scripts/demo.sh`
+
+## Slice 9: Concurrent server (Phase 3)
+
+- **What it does:** Lets many clients use the server at the same time, in several games at once.
+  Each client gets its own handler thread, each game gets its own timer thread, and each game has
+  its own lock so one game's slow client cannot hold up another game.
+- **Key files:**
+  - `src/server/server.h`, `src/server/server.cpp`: accept loop, handler and timer threads, lanes.
+  - `src/server/game.cpp`: `tick_game` (advance one game) and `discard_game` (undo a new game).
+  - `tests/integration/test_concurrency.cpp`: the simultaneous-client tests (T10 to T46).
+- **Why it is designed this way:** Game logic is still one object with one short lock, and it still
+  never touches a socket. The server layer adds a "lane" lock per game that is held from the state
+  change until the messages are written. That keeps the rule "the 200 OK comes before the push" and
+  lets two games write at the same time. Lock order is always lane, then routing lock, then game
+  state, so threads cannot deadlock.
+- **Likely demo questions:**
+  - What stops game A from slowing game B? Separate lanes (T40 stalls three game-A clients and
+    game B still answers in under 500 ms).
+  - How are threads cleaned up? Each thread flags itself done as its last step and the accept loop
+    joins it; shutdown joins them all (T44).
+  - What if a thread cannot be created? The client is closed or the new game is rolled back, and the
+    server keeps running (T44).
+- **Try it yourself:** `build/integration_tests T40`

@@ -56,18 +56,42 @@ Outcome GameManager::tick(double now) {
     Outcome outcome;
     std::vector<std::string> codes;
     for (const auto& entry : games_) codes.push_back(entry.first);
-
-    for (const auto& code : codes) {
-        Game* game = find_game(code);
-        expire_pending_players(*game, now, outcome);
-        if (game->players.empty()) {
-            outcome.events.push_back("game " + code + " removed: no players left");
-            games_.erase(code);
-            continue;
-        }
-        advance_game(*game, now, outcome);
-    }
+    for (const auto& code : codes) tick_game_locked(code, now, outcome);
     return outcome;
+}
+
+Outcome GameManager::tick_game(const std::string& code, double now) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    Outcome outcome;
+    tick_game_locked(code, now, outcome);
+    return outcome;
+}
+
+void GameManager::tick_game_locked(const std::string& code, double now, Outcome& outcome) {
+    Game* game = find_game(code);
+    if (game == nullptr) return;
+    expire_pending_players(*game, now, outcome);
+    if (game->players.empty()) {
+        outcome.events.push_back("game " + code + " removed: no players left");
+        outcome.ended_games.push_back(code);
+        games_.erase(code);
+        return;
+    }
+    advance_game(*game, now, outcome);
+}
+
+void GameManager::discard_game(const std::string& code) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    const Game* game = find_game(code);
+    if (game == nullptr) return;
+    for (const auto& player : game->players) game_code_of_conn_.erase(player.conn);
+    games_.erase(code);
+}
+
+std::string GameManager::game_code_of(ConnId conn) const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    const auto found = game_code_of_conn_.find(conn);
+    return found == game_code_of_conn_.end() ? std::string() : found->second;
 }
 
 // ---------------------------------------------------------------- commands
@@ -98,6 +122,7 @@ Outcome GameManager::create_game(ConnId conn, const Command& command) {
     outcome.events.push_back("game " + game.code + " created by " + host.name + " with " +
                              std::to_string(command.num_questions) + " questions");
     game_code_of_conn_[conn] = game.code;
+    outcome.created_game = game.code;
     games_[game.code] = game;
     return outcome;
 }
@@ -330,6 +355,7 @@ void GameManager::end_game(Game& game, GameEndReason reason, ConnId skip_conn, O
                               : reason == GameEndReason::HostEnded ? "HOST_ENDED"
                                                                    : "HOST_QUIT";
     outcome.events.push_back("game " + game.code + " ended: " + reason_text);
+    outcome.ended_games.push_back(game.code);
     games_.erase(game.code);  // also drops its pending reconnect sessions
 }
 
