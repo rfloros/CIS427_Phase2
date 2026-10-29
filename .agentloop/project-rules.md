@@ -1,22 +1,26 @@
 # Project rules: TermTrivia
 
-These rules reflect the repository before implementation begins. Re-run
-Discovery when source code, tests, and build files have been added.
+These rules reflect the implemented C++17 client and server, their TCP
+protocol, and the current build and test targets.
 
 ## Risk paths
 
-- `docs/protocol.md`: public TCP protocol contract, including command formats,
-  response codes, message framing, and reconnect behavior.
+- `docs/protocol.md` and `src/common/protocol.h`,
+  `src/common/protocol.cpp`: public TCP protocol contract, including command
+  formats, responses, pushes, and reconnect behavior.
+- `src/server/game.h`, `src/server/game.cpp`, `src/server/server.h`, and
+  `src/server/server.cpp`: shared game state, player identity and reconnect
+  tokens, session lifetime, synchronization, and game removal.
 
-No database, payment, outbound messaging, deployment, infrastructure, or secret
-files exist in the repository at this point.
+No database, payment, outbound messaging, dependency manifest, CI/deploy,
+infrastructure, or environment/secret files are present in the repository.
 
 ## Diff patterns to re-triage
 
 - Added or changed lines matching
   `DEBUG|SECRET|TOKEN|PASSWORD|TIMEOUT|RETRY|RATE_LIMIT|feature.?flag`
   (case-insensitive).
-- Deletions under `tests/`, once that directory exists.
+- Deletions under `tests/`.
 
 ## Size threshold
 
@@ -24,8 +28,8 @@ Recommend Gate 1 for a change likely to exceed 300 changed lines or 8 files.
 
 ## Project checks
 
-- Lint/build command: `make all`. The planned Makefile compiles C++17 with
-  `-Wall -Wextra`; the build must have no warnings.
-- Test command: `make test`.
-
-The Makefile and test runner are planned for Slice 0 and do not exist yet.
+- Lint/build command: `make all`. The Makefile builds the client and server
+  with C++17, `-Wall`, and `-Wextra`; the build must have no warnings.
+- Test command: `make test`. This builds the programs and runs unit,
+  integration, and scripted tests. The separate `make test-default-timers`
+  target runs the slow real-duration timer check when timing behavior needs it.
