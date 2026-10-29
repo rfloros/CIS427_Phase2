@@ -1,0 +1,4 @@
+# Demo bank: the correct answer is always A, so a demo can show scoring without reading the questions.
+Which letter starts the alphabet?|A|B|C|D|A
+Which number is the smallest?|1|2|3|4|A
+Which word comes first in a dictionary?|apple|banana|cherry|date|A

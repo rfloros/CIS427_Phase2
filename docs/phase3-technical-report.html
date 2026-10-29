@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>TermTrivia Phase 3 technical report (draft)</title>
+<style>
+body { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 10pt; line-height: 1.35; }
+h1 { font-size: 20pt; }
+h2 { font-size: 15pt; margin-top: 18pt; }
+h3 { font-size: 12pt; }
+code, pre { font-family: "DejaVu Sans Mono", monospace; font-size: 8.5pt; }
+table { border-collapse: collapse; }
+td, th { border: 1px solid #888; padding: 3px 6px; vertical-align: top; }
+th { background: #e8e8e8; }
+.pending { background: #fff3c4; border: 1px solid #b79c3a; padding: 6px; }
+</style>
+</head>
+<body>
+
+<h1>TermTrivia: Phase 3 technical report</h1>
+<p><b>CIS 427 Socket Programming Project, final submission (DRAFT)</b><br>
+Team: Robert and Matthew<br>
+Repository: <code>CIS427_Phase2</code>, work branch <code>agentloop/20261029-1650-termtrivia-phase3</code><br>
+Demonstration: Thursday, November 12th, 12 to 1:45 PM.</p>
+<p class="pending"><b>Draft status.</b> Two sections, the <i>Team contribution summary</i> and the <i>Ripple Report
+reflection</i>, are marked <b>Pending student input</b> and must be written by the team before submission. All other
+sections describe the code and the test results recorded in this repository. The team uploads the completed zip to
+the &ldquo;P3&rdquo; folder on Canvas.</p>
+
+<h2>1. Revised Curiosity Report</h2>
+<h1>CIS 427 Curiosity Report (Phase 3 revision)</h1>
+<p><b>Project:</b> TermTrivia, a terminal-based multiplayer trivia game<br>
+<b>Team:</b> Robert and Matthew<br>
+<b>Source:</b> <code>docs/curiosity-report-original.txt</code> (the Phase 1 report). This revision keeps the
+original problem, interview evidence, and user stories. It changes only what the built and tested system now
+shows; each change is marked <i>Updated</i> and names the test or measurement behind it.</p>
+
+<h3>A. Problem exploration</h3>
+<p><b>The problem.</b> Groups who want to play trivia together casually, at a club meeting or a study break,
+do not have a good lightweight option. Platforms like Kahoot or Quizizz require an internet-connected web client,
+host account setup, and often a paid tier once you go past a small question limit. The low-tech alternative, one
+person reading questions out loud, has no real scoring, no persistent leaderboard, and frequent disputes over who
+answered first.</p>
+<p><b>Who, when, and how it is handled today.</b> College students and campus groups in dorm common areas, club
+meetings, game nights, and study breaks use Kahoot or Quizizz (account, browser, often a paid tier), verbal
+&ldquo;shout the answer&rdquo; games, or index cards. These need internet and an account, or have no scoring that
+cannot be disputed.</p>
+<p><b>Why a networked app fits.</b> Everyone needs to see the same question at the same time and get consistent,
+fair results: a classic case for a shared server pushing synchronized state to several clients.</p>
+
+<h3>B. Curiosity questions: what testing now tells us</h3>
+<ol>
+<li><b>Who would use this most often?</b> Dorm and friend groups and campus clubs. Still untested with real
+players: whether they would choose it over Kahoot.</li>
+<li><b>What outcome does the user want?</b> Fast, fair, fun group trivia with visible scoring. Fairness
+(correctness-based scoring) is built in and tested: a quick correct answer and a slow correct answer both score
+one point (T05, and the demo with a late answer).</li>
+<li><b>What must be shared?</b> The current question, each player&rsquo;s answer status, and the leaderboard. All
+three are held in one game object on the server and shown identically to every player in the game.</li>
+<li><b>What must be real time?</b> Question delivery and results. <i>Updated:</i> with 20 healthy localhost
+clients, the slowest client saw a question within 2 ms of START_ROUND, replies took 1 ms, and the 20-second round
+timer closed within 6 ms of 20 seconds (<code>scripts/measure_nfr.sh</code>).</li>
+<li><b>What if two users answer at nearly the same time?</b> <i>Updated:</i> we tested it. Three clients answering
+at the same instant were each counted once with correct scores (T36), and two clients joining with the same name
+at once produced exactly one success and one 409 (T37). Each game has its own lock, so these cases are handled one
+at a time inside a game without slowing other games.</li>
+<li><b>What would make a user stop trusting the app?</b> A wrong or laggy leaderboard, a crash when a player
+disconnects, or not knowing whether an answer registered. Every command gets exactly one reply, a dropped player
+never crashes the server (T46), and a stalled player in one game does not delay another game (T40).</li>
+<li><b>What is the minimum valuable feature set?</b> Create or join a game by code, the host starts it, players
+answer, and the leaderboard updates after each round. All of it works with several clients at once.</li>
+<li><b>What changes from 5 players to 25?</b> <i>Updated:</i> we measured 20 players in one game. Broadcast time
+did not grow noticeably on localhost. We did not test 25 players, or players on a real network. See the
+scalability analysis in the technical report.</li>
+<li><b>Does anything persist after a disconnect?</b> Yes. A disconnected player can reconnect within 60 seconds
+and keep their score (T46). <i>Updated:</i> if the <i>host</i> does not return, a started game continues to its
+normal end and a lobby ends for everyone (T42, T47).</li>
+<li><b>What accessibility barriers exist?</b> A command-line interface favors people comfortable with a terminal
+and typing. Speed is never part of scoring, which reduces the penalty for slow typists, but a question still
+closes after 20 seconds.</li>
+</ol>
+
+<h3>C. User and stakeholder evidence</h3>
+<p><b>Source.</b> Short interviews conducted with 2 classmates who currently play trivia in group settings.</p>
+<p><b>What we learned.</b> Both interviewees said that when they play group trivia, they typically use Kahoot. The
+main downside they raised was that several useful features, including creating your own games, require either
+payment or an account, which adds friction for a casual, one-off trivia session with friends. When we described the
+correctness-only scoring approach (full credit for a correct answer regardless of how fast it was submitted), both
+said they preferred it over speed-based scoring, since it rewards actually understanding the question rather than
+reaction time.</p>
+<p><b>How this shaped the proposal.</b> This evidence reinforced two core decisions: no-account, no-cost access and
+correctness-only scoring. Both are unchanged in the finished system. We have not run new interviews in Phase 3, so
+no new user evidence is claimed.</p>
+
+<h3>D. Target users</h3>
+<p><b>Primary users:</b> hosts and players in casual trivia settings: dorm groups, campus clubs, friend hangouts.
+The host is also a participant and answers alongside everyone else. <b>Secondary stakeholders:</b> club organizers
+or RAs running a quick group activity. <b>Goals:</b> a fair, low-friction session with no account and no cost.
+<b>Likely frustrations:</b> input lag, uncertainty about whether an answer registered, disputes over who answered
+first, long gaps between rounds. <b>Assumptions about experience:</b> comfort with a terminal is likely for a
+CS-adjacent test group and less certain for a general dorm crowd; this remains a real limitation.</p>
+<p><b>User stories.</b> As a group organizer, I want to start a game and share a join code so that everyone can
+jump in quickly with no installs or accounts. As a player, I want to see my score update after each question so
+that I know how I am doing. As a host, I want to see each round&rsquo;s results and the correct answer after it
+closes so that I can keep the game moving.</p>
+
+<h3>E. Value proposition</h3>
+<p>For casual campus groups who need a fast, fair way to play trivia together, TermTrivia provides a lightweight,
+terminal-based multiplayer quiz game joinable with a simple code. Unlike Kahoot or Quizizz, which require a web
+client, account setup, and often a paid tier, TermTrivia runs over a direct connection with no sign-up and no cost.</p>
+<ul>
+<li><b>Functional value:</b> synchronized question delivery, fair scoring, and a live leaderboard, for several
+games at once.</li>
+<li><b>Experiential value:</b> join in seconds with just a code; no install of anything but the client, no account.</li>
+<li><b>Reliability value:</b> scoring depends only on correctness; a disconnected player can reconnect with their
+score and does not take down the round for everyone else (T46).</li>
+<li><b>Scalability value:</b> <i>Updated:</i> the design target of about 20 simultaneous players was tested with 20
+players on one machine and met the timing limits. Larger crowds and real networks remain untested.</li>
+</ul>
+
+<h3>F. Assumptions, risks, and open questions: status</h3>
+<ol>
+<li><b>Assumption: terminal comfort.</b> Unchanged and still unverified beyond the two interviewees.</li>
+<li><b>Assumption: about 20 players.</b> <i>Updated:</i> tested with 20 on localhost.</li>
+<li><b>Assumption: same network.</b> Unchanged; all testing used localhost.</li>
+<li><b>Risk: a mid-game joiner starts at 0.</b> <i>Updated:</i> the joiner waits for the next question and sees no
+missed questions (T41). They still start at zero; we did not change that.</li>
+<li><b>Risk: telling a reconnect from a new join.</b> Resolved: reconnecting needs name, game code, and a private
+token, and every wrong guess gets the same 410 (T28).</li>
+<li><b>Risk: lag with about 20 clients.</b> <i>Updated:</i> not observed on localhost (replies 1 ms, question push
+2 ms); a real network could differ.</li>
+<li><b>Open: how long to wait for a disconnected player?</b> Decided: 60 seconds by default, configurable.</li>
+<li><b>Open: show a mid-game joiner the missed questions?</b> Decided: no, they start at the next question. A join
+in the final intermission is also accepted and shown in the final results with score zero (T43).</li>
+</ol>
+
+<h2>2. Final problem statement and value proposition</h2>
+<p><b>Problem.</b> Casual groups (dorm friends, campus clubs) lack a lightweight way to play fair, scored trivia
+together without accounts, payment, or a browser. Reading questions aloud has no reliable scoring or leaderboard
+and invites arguments about who answered first.</p>
+<p><b>Solution.</b> TermTrivia is a client-server terminal game over TCP. One server hosts many games at once. A
+host creates a game with a join code, players join with the code, and after START_ROUND the server runs the whole
+game on timers: a 20-second question, a 5-second intermission, and a 10-second final intermission. Scores
+come from correct answers only. A player who disconnects can reconnect within 60 seconds with a private token and
+keep their score.</p>
+<p><b>Value proposition.</b> For casual campus groups who need a fast, fair way to play trivia together, TermTrivia
+provides a lightweight, terminal-based multiplayer quiz game joinable with a simple code. Unlike Kahoot or Quizizz,
+it needs no account, no web client, and no payment. Its distinctive feature is <b>correctness-only scoring</b>, which
+two interviewed classmates preferred to speed-based scoring and which keeps the game fair for slow typists.</p>
+
+<h2>3. Final requirements</h2>
+<p>The full text, with protocol references and the tests that verify each, is in <code>docs/requirements.md</code>
+(26 functional and 11 nonfunctional requirements). Summary:</p>
+<table border="1" cellpadding="4" cellspacing="0" width="100%">
+<tr><th>ID</th><th>Requirement (short)</th></tr>
+<tr><td>FR-01 to FR-03</td><td>Create a game and show its join code; join by code, in the lobby, mid-game, or in the final intermission; the host starts the game once and everything after is automatic.</td></tr>
+<tr><td>FR-04 to FR-09</td><td>Questions pushed to every player at once; answer A to D; scoring on correctness alone; a round closes when all active players answered or after 20 s; leaderboard on request; automatic end with GAME_END COMPLETE.</td></tr>
+<tr><td>FR-10, FR-11</td><td>Host END_GAME ends only that game; QUIT is permanent, a non-host quit removes only that player and a host quit ends the game.</td></tr>
+<tr><td>FR-12, FR-21, FR-22</td><td>Unexpected disconnect keeps the player for 60 s; reconnect with name, code, and token restores the score; the game does not stop when the host drops.</td></tr>
+<tr><td>FR-13 to FR-20</td><td>Specific error replies (300, 401, 402, 404, 409, 410, 420, 421, 422, 423); connection stays open after a bad line; client handles bad input and server loss.</td></tr>
+<tr><td>FR-23</td><td>A separate score for every player in every game; several games at once without interference.</td></tr>
+<tr><td>FR-24, FR-25</td><td>Messages rebuilt from any split or combined reads; timestamped server log.</td></tr>
+<tr><td>FR-26 (new in Phase 3)</td><td>Host expiry: a lobby whose host does not return ends with GAME_END HOST_EXPIRED; a started game continues to COMPLETE with no host.</td></tr>
+<tr><td>NFR-01</td><td>Up to 20 players: replies within 500 ms, questions within 1 s, timers within 1 s.</td></tr>
+<tr><td>NFR-02 to NFR-04</td><td>No crash on bad input or disconnects; reconnect rules; correct framing at any split.</td></tr>
+<tr><td>NFR-05 to NFR-06, NFR-10</td><td>Usability, instant display of pushes, scoring independent of speed.</td></tr>
+<tr><td>NFR-07</td><td>At least 3 simultaneous clients and several simultaneous games.</td></tr>
+<tr><td>NFR-08, NFR-09, NFR-11</td><td>Separated modules, no tokens in output or logs, 512-byte lines, configurable ports and timers.</td></tr>
+</table>
+
+<h2>4. Architecture diagram</h2>
+<p>Source: <code>docs/images/architecture_diagram.svg</code> (PNG and PDF copies alongside).</p>
+<p><img src="images/architecture_diagram.png" alt="TermTrivia architecture diagram" width="640"></p>
+<p>Each client has a main thread (prompt), a reader thread (the only caller of recv), and a reply queue. The server has
+an accept loop, one handler thread per client, one timer thread per game, a lock ("lane") per game, a short routing
+lock, the game-state object, the logger, and the question bank.</p>
+
+<h2>5. Sequence diagram</h2>
+<p>Source: <code>docs/images/sequence_diagram.svg</code>.</p>
+<p><img src="images/sequence_diagram.png" alt="TermTrivia sequence diagram" width="520"></p>
+<p>The diagram follows two clients through connecting, creating and joining, starting, simultaneous answers, a
+stalled reader in another game, a disconnect and reconnect, and the end of the game.</p>
+
+<h2>6. Concurrency design</h2>
+<p><b>Threads.</b> The accept loop starts one handler thread per connection; the handler owns that connection and is
+the only reader of its socket. Each game has one timer thread that ticks only that game every 20 ms. Writes can come
+from a handler (replies, and pushes caused by that command) or from the timer thread (question, result, and end
+pushes).</p>
+<p><b>Per-game lane.</b> The server first used one global lock for all games, which kept messages in order but let one
+slow client delay everyone. With three clients in one game not reading, a reply in another game took longer than
+500 ms, and the test T40 failed on that design (5 of 6 runs). The final design gives every game a lane, a mutex that
+is held from the state change until all of that event's messages are written. That keeps
+<b>reply-before-push</b> and the order of events inside a game, while different games write at the same time.</p>
+<p><b>Lock order</b> is always: the game's lane (or the connection's own lane when it is not in a game), then the short
+routing mutex, then the game manager's own mutex. The routing mutex protects the game-code-to-lane map and the
+connection map. It may cover a state change and a registry update, but never a socket call. Because every path uses the
+same order, threads cannot deadlock.</p>
+<p><b>Choosing the lane.</b> A command takes the lane of the game the connection is in; JOIN_GAME and RECONNECT use the
+code in the command. After locking, the server looks the lane up again, and retries if the game was removed or
+replaced, so a stale lookup never touches a newer game that reuses the code.</p>
+<p><b>Creating a game.</b> CREATE_GAME holds the new game's lane before the game is published, starts the game's timer
+thread, and only then writes 200 OK. If the timer thread cannot start, the game and lane are rolled back while the lane
+is still held, so a concurrent JOIN_GAME cannot enter a game that is about to disappear, and the connection is closed
+with no reply. This resource-exhaustion path is the one exception to the one-reply rule (T44).</p>
+<p><b>Delivery and lifetime.</b> Each effect is paired with a <code>shared_ptr</code> to its connection while the state
+change is protected, then written outside the routing mutex under the connection's own write lock with a 200 ms send
+timeout. A connection stays alive until the last pending write finishes, so no write can reach a closed or reused
+descriptor.</p>
+<p><b>Cleanup and shutdown.</b> Every worker sets a done flag as its last step. The accept loop joins finished workers
+after each wake-up; at shutdown it stops accepting, lets handlers and timers see the stop flag (handlers poll every
+50 ms), and joins handlers first and timers second. If a handler thread cannot be created, that connection is closed and
+the error is logged while the server keeps accepting (T44).</p>
+<p><b>Host expiry.</b> The timer thread expires reconnect windows. An expired host in a lobby ends the game with
+GAME_END HOST_EXPIRED; during play the host is just removed (T42, T47).</p>
+
+<h2>7. Protocol specification</h2>
+<p>Full text: <code>docs/protocol.md</code>. The protocol is line-oriented ASCII over TCP. A client message is one
+line ending in a newline. A server message is one or more lines followed by a blank line; a reply is the answer to
+exactly one command and a push starts with <code>PUSH</code>.</p>
+<table border="1" cellpadding="4" cellspacing="0" width="100%">
+<tr><th>Command</th><th>Meaning and success reply</th></tr>
+<tr><td>CREATE_GAME &lt;name&gt; &lt;count&gt;</td><td>200 OK, join code, private token</td></tr>
+<tr><td>JOIN_GAME &lt;code&gt; &lt;name&gt;</td><td>200 OK, &ldquo;N players in game CODE&rdquo;, token</td></tr>
+<tr><td>START_ROUND (host)</td><td>200 OK, then PUSH QUESTION 1 to every active player</td></tr>
+<tr><td>SUBMIT_ANSWER &lt;A-D&gt;</td><td>200 OK (correctness is revealed in ROUND_RESULT)</td></tr>
+<tr><td>LEADERBOARD</td><td>200 OK, then name:score lines, highest first</td></tr>
+<tr><td>RECONNECT &lt;name&gt; &lt;code&gt; &lt;token&gt;</td><td>200 OK, &ldquo;score question-number&rdquo;, and the open question again</td></tr>
+<tr><td>QUIT</td><td>200 OK, then the connection closes</td></tr>
+<tr><td>END_GAME (host)</td><td>200 OK, then GAME_END HOST_ENDED to everyone</td></tr>
+</table>
+<p><b>Pushes:</b> <code>PUSH QUESTION n text</code> with options A to D; <code>PUSH ROUND_RESULT n</code> with the
+correct answer and standings; <code>PUSH GAME_END reason</code> with final results. <b>End reasons:</b> COMPLETE,
+HOST_ENDED, HOST_QUIT, and HOST_EXPIRED (new in Phase 3). <b>Error codes:</b> 300 format, 401 not in a game, 402 host
+only, 404 unknown code, 409 duplicate name, 410 reconnect refused (one generic reply for any wrong detail), 420 no open
+round, 421 already started, 422 already answered, 423 bad question count. Phase 3 additions are recorded in
+<code>docs/design-changes.md</code> (decisions 38 to 43).</p>
+
+<h2>8. Data structures</h2>
+<table border="1" cellpadding="4" cellspacing="0" width="100%">
+<tr><th>Structure</th><th>Where</th><th>Purpose</th></tr>
+<tr><td><code>Game</code></td><td>game.h</td><td>code, state (Lobby, QuestionActive, Intermission), players in join order, shuffled question order, current question number, phase end time</td></tr>
+<tr><td><code>Player</code></td><td>game.h</td><td>name, private token, score, state (Active, Waiting, DisconnectedPending), connection id, host flag, answered flag and choice, time of disconnect</td></tr>
+<tr><td><code>games_</code>, <code>game_code_of_conn_</code></td><td>GameManager</td><td>games by code; which game a live connection is in (both under the manager mutex)</td></tr>
+<tr><td><code>Effect</code>, <code>Outcome</code></td><td>game.h</td><td>game logic returns messages to send (connection, lines, close-after), log events, and created or ended game codes; it never touches sockets</td></tr>
+<tr><td><code>lanes_</code>, <code>live_connections_</code></td><td>Server</td><td>game code to lane; connection id to shared connection (under the routing mutex)</td></tr>
+<tr><td><code>Worker</code> lists</td><td>Server</td><td>handler and timer threads with done flags, so finished threads are joined</td></tr>
+<tr><td><code>Connection</code>, <code>LineBuffer</code>, <code>MessageAssembler</code></td><td>common/</td><td>socket with a write lock and send timeout; bytes to lines (512-byte limit); lines to messages</td></tr>
+<tr><td><code>ReplyQueue</code></td><td>client/</td><td>hands replies from the reader thread to the prompt thread</td></tr>
+</table>
+<p>There is no persistent storage except the question bank file; games exist only in memory.</p>
+
+<h2>9. Error-handling strategy</h2>
+<ul>
+<li><b>Bad input:</b> every empty, unknown, malformed, or over-long line gets one error reply and the connection stays
+open. Input is data only and is never executed.</li>
+<li><b>Wrong state:</b> specific codes (401, 402, 404, 409, 420 to 423) say what was wrong; no state changes.</li>
+<li><b>Reconnect secrecy:</b> every wrong name, code, token, or late reconnect gets the same 410.</li>
+<li><b>Slow or dead clients:</b> writes time out after 200 ms and mark the connection broken; the handler treats it as
+an unexpected disconnect. Resets and closes are handled the same way; SIGPIPE is ignored and sends use MSG_NOSIGNAL.</li>
+<li><b>Disconnects:</b> the player is kept for the reconnect window and does not hold up a round; the server keeps running.</li>
+<li><b>Host never returns:</b> a lobby ends with HOST_EXPIRED; a started game continues without a host.</li>
+<li><b>Resource failure:</b> a handler thread that cannot start closes that client; a timer thread that cannot start
+rolls back the new game with no reply. Both are logged and the server keeps accepting.</li>
+<li><b>Shutdown:</b> Ctrl+C stops accepting, ends every worker within about 50 ms, joins them, and logs one line.</li>
+<li><b>Logging:</b> connections, requests with result codes, errors, game events, disconnects, and shutdown are logged;
+tokens never are.</li>
+</ul>
+
+<h2>10. Test results</h2>
+<p>Full detail, environment, and limitations: <code>docs/phase3-test-report.md</code>. Results were produced on one
+machine (Omarchy Linux, g++ 16.2.1, 8 CPUs) over localhost by the assistant that wrote the code; the team has not yet
+re-run them.</p>
+<table border="1" cellpadding="4" cellspacing="0" width="100%">
+<tr><th>Measure</th><th>Result</th></tr>
+<tr><td>Unit tests (<code>make test</code>)</td><td>116 tests run, 0 check failures</td></tr>
+<tr><td>Real-socket tests</td><td>75 tests run, 0 check failures</td></tr>
+<tr><td>Scripted scenarios and deliverable audit</td><td>all checks passed</td></tr>
+<tr><td>Real 20/5/10/60 second timers</td><td>all checks passed (<code>make test-default-timers</code>)</td></tr>
+<tr><td>New Phase 3 socket tests (T10, T11, T22, T23, T35 to T47)</td><td>all pass; each repeated 10 times with 150 of 150 runs passing</td></tr>
+<tr><td>20 players, real timers (NFR-01)</td><td>reply 1 ms (limit 500 ms), question push 2 ms (limit 1 s), 20-second round timer 20 001 to 20 006 ms (limit plus or minus 1 s)</td></tr>
+<tr><td>ThreadSanitizer, 75 socket tests</td><td>no report in Phase 3 code; one report in a Phase 2 startup test (not changed)</td></tr>
+</table>
+<p><b>What the key tests showed.</b> Simultaneous answers each counted once with correct scores (T36); a same-name join
+race gave one 200 and one 409 (T37); ending game A left game B running (T38); three stalled readers in one game did not
+delay another game's replies beyond 500 ms (T40), while the earlier single-lock design failed that test in 5 of 6
+runs; a lobby with an absent host ended with <code>HOST_EXPIRED</code> and a started game ran on to
+<code>COMPLETE</code> (T42, T47); a join in the final intermission appeared in the final results (T43); and failed
+thread launches, shutdown, and thread cleanup behaved as designed (T44). Testing also found one real bug, a reply
+that could be written after <code>GAME_END</code>; it was fixed and covered by a regression test.</p>
+<p><b>Limits of this evidence:</b> one machine, localhost only, at most 20 players, and timing bounds that assume a
+lightly loaded machine.</p>
+
+<h2>11. Known limitations</h2>
+<ul>
+<li>One thread per client and per game: simple, and sound for the tested scale, but not for thousands of clients.</li>
+<li>A client that stops reading costs its own game up to 200 ms of waiting per write before it is dropped.</li>
+<li>No host transfer; no persistence; all games are lost if the server stops.</li>
+<li>No encryption and no user accounts; reconnect safety rests on a four-character private token. All testing used
+localhost and one machine, never a real network, never more than 20 players.</li>
+<li>A terminal and typing are required; a question still closes after 20 seconds.</li>
+<li>The client lists a join code but cannot browse games; there is no chat, team mode, or custom timer per question.</li>
+</ul>
+
+<h2>12. Scalability analysis</h2>
+<p><b>Design.</b> The server uses one thread per connected client and one timer thread per active game. Per client
+the cost is a thread stack, a socket, and small buffers; per game it is a thread, a lane, and a few hundred bytes of
+state. Within a game all events are handled one at a time under that game's lane; different games run in parallel.</p>
+<p><b>Measured.</b> With 20 healthy localhost clients in one game and the real timers, the leaderboard reply took
+1 ms, the START_ROUND reply 1 ms, the slowest client saw question 1 within 2 ms, and the 20-second round timer closed
+within 6 ms of 20 seconds. Three clients that stopped reading in one game did not delay another game's reply beyond
+500 ms (T40). These meet NFR-01 for up to 20 players on one machine.</p>
+<p><b>Where it would stop scaling.</b> (1) Threads and memory grow with clients and games, so a few thousand
+connections would be limited by threads, stacks, and context switching. (2) A broadcast writes to each player in turn
+inside the game's lane; with many players or slow readers one game's round could be delayed by up to 200 ms per stalled
+reader. (3) Everything lives in one process on one machine, with no persistence or failover. (4) The game-state mutex
+is shared by all games, but it is held only for short in-memory operations, never for socket I/O.</p>
+<p><b>What would come next.</b> An event loop or a worker pool, a per-connection outbound queue with a writer so a slow
+reader never delays a broadcast, and sharding games across processes. We did not measure 25 or more players, many
+simultaneous games, or a real network, so no claim is made about them.</p>
+
+<h2>13. Team contribution summary</h2>
+<p class="pending"><b>Pending student input.</b> Robert and Matthew must write who did what. This draft intentionally
+contains no claims about individual contributions. The repository history shows commits, but it does not record which
+person made which decision.</p>
+
+<h2>14. Ripple Report reflection</h2>
+<p class="pending"><b>Pending student input.</b> The team must write its own Ripple Report reflection. No reflection has
+been written or implied in this draft.</p>
+
+</body>
+</html>

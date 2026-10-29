@@ -230,7 +230,7 @@ Template for each entry:
 - **Likely demo questions:**
   - Where do I find out how X works? `docs/walkthrough.md`, one entry per slice.
   - How do I see the real defaults working? `make test-default-timers`.
-  - Which tests are still pending? Only the Phase 3 simultaneous-client tests.
+  - Which tests are still pending? None; the Phase 3 simultaneous-client tests are in `docs/phase3-test-report.md`.
 - **Try it yourself:** `bash scripts/demo.sh`
 
 ## Slice 9: Concurrent server (Phase 3)

@@ -1,0 +1,60 @@
+CIS 427 — Curiosity Report
+Project: TermTrivia — Terminal-Based Multiplayer Trivia Game
+Team: Robert and Matthew
+________________
+A. Problem Exploration
+The problem: Groups who want to play trivia together casually at a club meeting, a study break don't have a good lightweight option. Platforms like Kahoot or Quizizz require an internet-connected web client, host account setup, and often a paid tier once you go past a small question limit. The low tech alternative one person reading questions out loud has no real scoring, no persistent leaderboard, and frequent disputes over who answered first.
+Who experiences it: College students and campus groups wanting a quick, fair, scored trivia session without setting up accounts or paying for a service.
+When/where: Dorm common areas, club meetings, game nights, study breaks.
+How it's currently handled: Kahoot/Quizizz (account + browser + often a paid tier), verbal "shout the answer" games, index cards.
+Limitations of current approaches: Requires internet + account creation; no persistent, disputed free scoring in the verbal version
+Why a networked app fits: Everyone needs to see the same question at the same time and get consistent, fair results. A classic case for a shared server pushing synchronized state to multiple clients.
+________________
+B. Curiosity Questions
+1. Who would use this most often? Likely dorm/friend groups and campus clubs doing casual trivia. Needs testing: whether people would actually choose this over Kahoot, or just default to what they already know.
+2. What outcome is the user trying to achieve? Fast, fair, fun group trivia with visible scoring. Decided: fairness (correctness-based scoring) matters more than speed for this group's intended use case.
+3. What information must be shared between users? The current question, each player's submission status, and the live leaderboard.
+4. Which tasks must happen in real time? Question delivery to all players at once, and leaderboard updates after each round closes.
+5. What happens when two users answer at nearly the same time? Since scoring is correctness-only, both can get full credit but the server still needs to safely process near simultaneous submissions without race conditions in the shared score data.
+6. What would cause a user to stop trusting the app? A visibly wrong or laggy leaderboard, a crash when one player disconnects, or not knowing whether their answer actually registered.
+7. What's the minimum feature set that's still valuable? Create/join a game by code, host pushes a question, players submit answers, leaderboard updates after each round.
+8. What changes going from 5 players to 25? Broadcast timing for questions and leaderboard updates, and how simultaneous submissions are handled at scale.
+9. Does anything need to persist after a disconnect? Yes, a disconnected player can reconnect and resume with their existing score intact, rather than being dropped.
+10. What accessibility barriers exist? Since it's a command line interface, typing speed under time pressure could disadvantage some players worth deciding whether speed is ever part of scoring.
+________________
+C. User and Stakeholder Evidence
+Source: Short interviews I conducted with 2 classmates who currently play trivia in group settings.
+What I learned: Both interviewees said that when they play group trivia, they typically use Kahoot. The main downside they raised was that several useful features including creating your own games require either payment or an account, which adds friction for a casual, one-off trivia session with friends. When I described the correctness-only scoring approach (full credit for a correct answer, regardless of how fast it was submitted), both said they preferred it over speed based scoring, since it rewards actually understanding the question rather than reaction time.
+How this shaped the proposal: This evidence directly reinforced two of our core decisions for no account, no cost access and correctness only scoring.
+________________
+D. Target Users
+Primary users: Hosts and players in casual trivia settings dorm groups, campus clubs, friend hangouts. The host is also a participant and answers questions alongside everyone else, not just a moderator.
+Secondary users/stakeholders: Club organizers or RAs who might use it to run a quick group activity.
+User goals: A fair, low-friction trivia session with no account setup and no cost.
+Likely frustrations: Input lag, uncertainty about whether an answer registered, disputes over who answered first, long gaps between rounds.
+Technical experience assumptions: Comfortable with a terminal likely true for a CS adjacent test group, less certain for a general dorm crowd. Worth naming as a real accessibility limitation in this report.
+Accessibility considerations: Scoring is based purely on correctness, not answer speed, a deliberate decision to keep the game fair for players who type more slowly or have higher latency.
+User Stories
+* As a group organizer, I want to start a game and share a join code so that everyone can jump in quickly with no installs or accounts.
+* As a player, I want to see my score update after each question so that I know how I'm doing without waiting until the very end.
+* As a host, I want to see each round's results and the correct answer after it closes so that I can keep the game moving and settle any confusion.
+________________
+E. Value Proposition
+For casual campus groups who need a fast, fair way to play trivia together, TermTrivia provides a lightweight, terminal-based multiplayer quiz game joinable with a simple code. Unlike Kahoot or Quizizz, which require a web client, account setup, and often a paid tier, TermTrivia runs over a direct connection with no sign-up and no cost.
+* Functional value: Synchronized question delivery, fair scoring, and a live leaderboard.
+* Experiential value: Join in seconds with just a code no install, no account.
+* Reliability value: Since scoring only depends on correctness, there's no dispute over who answered first; a disconnected player can reconnect and keep their progress, and doesn't take down the round for everyone else.
+* Scalability value: Design target is up to ~20 simultaneous players, turning this from a "5 friends in a dorm" tool into something usable for a full club meeting. Supporting more players does raise real questions about broadcast timing and overhead at that scale.
+________________
+F. Assumptions, Risks, and Open Questions
+Assumptions
+1. Most target players have terminal access and are comfortable typing under light time pressure.
+2. Games are designed to support up to ~20 simultaneous players, which will be a real test of how the broadcast/leaderboard design holds up under load.
+3. Players are on the same network or directly reachable — no NAT traversal or cloud relay planned for this version.
+Risks
+1. Risk: A player who joins mid game starts with 0 points while others have already scored, which could feel unfair or confusing.
+2. Risk: A reconnecting player's session needs to be told apart from a brand new join.
+3. Risk: Broadcasting questions and leaderboard updates to ~20 simultaneous clients could introduce lag or dropped updates.
+Open Questions
+1. How long should the server wait for a disconnected player to reconnect before treating their spot as abandoned?
+2. Should a player who joins mid game be shown the questions they missed, or only start participating from the next round?

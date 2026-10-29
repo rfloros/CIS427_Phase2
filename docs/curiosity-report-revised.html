@@ -1,0 +1,105 @@
+<h1>CIS 427 Curiosity Report (Phase 3 revision)</h1>
+<p><b>Project:</b> TermTrivia, a terminal-based multiplayer trivia game<br>
+<b>Team:</b> Robert and Matthew<br>
+<b>Source:</b> <code>docs/curiosity-report-original.txt</code> (the Phase 1 report). This revision keeps the
+original problem, interview evidence, and user stories. It changes only what the built and tested system now
+shows; each change is marked <i>Updated</i> and names the test or measurement behind it.</p>
+
+<h3>A. Problem exploration</h3>
+<p><b>The problem.</b> Groups who want to play trivia together casually, at a club meeting or a study break,
+do not have a good lightweight option. Platforms like Kahoot or Quizizz require an internet-connected web client,
+host account setup, and often a paid tier once you go past a small question limit. The low-tech alternative, one
+person reading questions out loud, has no real scoring, no persistent leaderboard, and frequent disputes over who
+answered first.</p>
+<p><b>Who, when, and how it is handled today.</b> College students and campus groups in dorm common areas, club
+meetings, game nights, and study breaks use Kahoot or Quizizz (account, browser, often a paid tier), verbal
+&ldquo;shout the answer&rdquo; games, or index cards. These need internet and an account, or have no scoring that
+cannot be disputed.</p>
+<p><b>Why a networked app fits.</b> Everyone needs to see the same question at the same time and get consistent,
+fair results: a classic case for a shared server pushing synchronized state to several clients.</p>
+
+<h3>B. Curiosity questions: what testing now tells us</h3>
+<ol>
+<li><b>Who would use this most often?</b> Dorm and friend groups and campus clubs. Still untested with real
+players: whether they would choose it over Kahoot.</li>
+<li><b>What outcome does the user want?</b> Fast, fair, fun group trivia with visible scoring. Fairness
+(correctness-based scoring) is built in and tested: a quick correct answer and a slow correct answer both score
+one point (T05, and the demo with a late answer).</li>
+<li><b>What must be shared?</b> The current question, each player&rsquo;s answer status, and the leaderboard. All
+three are held in one game object on the server and shown identically to every player in the game.</li>
+<li><b>What must be real time?</b> Question delivery and results. <i>Updated:</i> with 20 healthy localhost
+clients, the slowest client saw a question within 2 ms of START_ROUND, replies took 1 ms, and the 20-second round
+timer closed within 6 ms of 20 seconds (<code>scripts/measure_nfr.sh</code>).</li>
+<li><b>What if two users answer at nearly the same time?</b> <i>Updated:</i> we tested it. Three clients answering
+at the same instant were each counted once with correct scores (T36), and two clients joining with the same name
+at once produced exactly one success and one 409 (T37). Each game has its own lock, so these cases are handled one
+at a time inside a game without slowing other games.</li>
+<li><b>What would make a user stop trusting the app?</b> A wrong or laggy leaderboard, a crash when a player
+disconnects, or not knowing whether an answer registered. Every command gets exactly one reply, a dropped player
+never crashes the server (T46), and a stalled player in one game does not delay another game (T40).</li>
+<li><b>What is the minimum valuable feature set?</b> Create or join a game by code, the host starts it, players
+answer, and the leaderboard updates after each round. All of it works with several clients at once.</li>
+<li><b>What changes from 5 players to 25?</b> <i>Updated:</i> we measured 20 players in one game. Broadcast time
+did not grow noticeably on localhost. We did not test 25 players, or players on a real network. See the
+scalability analysis in the technical report.</li>
+<li><b>Does anything persist after a disconnect?</b> Yes. A disconnected player can reconnect within 60 seconds
+and keep their score (T46). <i>Updated:</i> if the <i>host</i> does not return, a started game continues to its
+normal end and a lobby ends for everyone (T42, T47).</li>
+<li><b>What accessibility barriers exist?</b> A command-line interface favors people comfortable with a terminal
+and typing. Speed is never part of scoring, which reduces the penalty for slow typists, but a question still
+closes after 20 seconds.</li>
+</ol>
+
+<h3>C. User and stakeholder evidence</h3>
+<p><b>Source.</b> Short interviews conducted with 2 classmates who currently play trivia in group settings.</p>
+<p><b>What we learned.</b> Both interviewees said that when they play group trivia, they typically use Kahoot. The
+main downside they raised was that several useful features, including creating your own games, require either
+payment or an account, which adds friction for a casual, one-off trivia session with friends. When we described the
+correctness-only scoring approach (full credit for a correct answer regardless of how fast it was submitted), both
+said they preferred it over speed-based scoring, since it rewards actually understanding the question rather than
+reaction time.</p>
+<p><b>How this shaped the proposal.</b> This evidence reinforced two core decisions: no-account, no-cost access and
+correctness-only scoring. Both are unchanged in the finished system. We have not run new interviews in Phase 3, so
+no new user evidence is claimed.</p>
+
+<h3>D. Target users</h3>
+<p><b>Primary users:</b> hosts and players in casual trivia settings: dorm groups, campus clubs, friend hangouts.
+The host is also a participant and answers alongside everyone else. <b>Secondary stakeholders:</b> club organizers
+or RAs running a quick group activity. <b>Goals:</b> a fair, low-friction session with no account and no cost.
+<b>Likely frustrations:</b> input lag, uncertainty about whether an answer registered, disputes over who answered
+first, long gaps between rounds. <b>Assumptions about experience:</b> comfort with a terminal is likely for a
+CS-adjacent test group and less certain for a general dorm crowd; this remains a real limitation.</p>
+<p><b>User stories.</b> As a group organizer, I want to start a game and share a join code so that everyone can
+jump in quickly with no installs or accounts. As a player, I want to see my score update after each question so
+that I know how I am doing. As a host, I want to see each round&rsquo;s results and the correct answer after it
+closes so that I can keep the game moving.</p>
+
+<h3>E. Value proposition</h3>
+<p>For casual campus groups who need a fast, fair way to play trivia together, TermTrivia provides a lightweight,
+terminal-based multiplayer quiz game joinable with a simple code. Unlike Kahoot or Quizizz, which require a web
+client, account setup, and often a paid tier, TermTrivia runs over a direct connection with no sign-up and no cost.</p>
+<ul>
+<li><b>Functional value:</b> synchronized question delivery, fair scoring, and a live leaderboard, for several
+games at once.</li>
+<li><b>Experiential value:</b> join in seconds with just a code; no install of anything but the client, no account.</li>
+<li><b>Reliability value:</b> scoring depends only on correctness; a disconnected player can reconnect with their
+score and does not take down the round for everyone else (T46).</li>
+<li><b>Scalability value:</b> <i>Updated:</i> the design target of about 20 simultaneous players was tested with 20
+players on one machine and met the timing limits. Larger crowds and real networks remain untested.</li>
+</ul>
+
+<h3>F. Assumptions, risks, and open questions: status</h3>
+<ol>
+<li><b>Assumption: terminal comfort.</b> Unchanged and still unverified beyond the two interviewees.</li>
+<li><b>Assumption: about 20 players.</b> <i>Updated:</i> tested with 20 on localhost.</li>
+<li><b>Assumption: same network.</b> Unchanged; all testing used localhost.</li>
+<li><b>Risk: a mid-game joiner starts at 0.</b> <i>Updated:</i> the joiner waits for the next question and sees no
+missed questions (T41). They still start at zero; we did not change that.</li>
+<li><b>Risk: telling a reconnect from a new join.</b> Resolved: reconnecting needs name, game code, and a private
+token, and every wrong guess gets the same 410 (T28).</li>
+<li><b>Risk: lag with about 20 clients.</b> <i>Updated:</i> not observed on localhost (replies 1 ms, question push
+2 ms); a real network could differ.</li>
+<li><b>Open: how long to wait for a disconnected player?</b> Decided: 60 seconds by default, configurable.</li>
+<li><b>Open: show a mid-game joiner the missed questions?</b> Decided: no, they start at the next question. A join
+in the final intermission is also accepted and shown in the final results with score zero (T43).</li>
+</ol>

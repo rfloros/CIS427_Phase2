@@ -1,3 +1,5 @@
+> **Phase 3 note:** this plan describes the Phase 2 build. The server now runs one handler thread per client and one timer thread per game (`docs/architecture.md`, `docs/design-changes.md` decisions 38 to 44); present-tense statements below about serving one client at a time describe Phase 2 only.
+
 # Implementation plan
 
 Status checklist (tick when the slice's tests pass and its walkthrough entry exists):

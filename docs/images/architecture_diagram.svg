@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" font-family="DejaVu Sans, Arial, sans-serif">
+<defs><marker id="ak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3b3f4c"/></marker><marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1b5ea8"/></marker><marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#b5521b"/></marker><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#a01c1c"/></marker></defs>
+<rect width="1600" height="1000" fill="white"/>
+<text x="800.0" y="34" font-size="24" text-anchor="middle" fill="#111" font-weight="bold">TermTrivia architecture (Phase 3: concurrent server)</text>
+<rect x="30" y="120" width="170" height="60" rx="10" fill="#f2f2f2" stroke="#3b3f4c" stroke-width="1.6"/>
+<text x="115.0" y="142" font-size="13.5" text-anchor="middle" fill="#111" font-weight="bold">Player</text>
+<text x="115.0" y="159" font-size="12" text-anchor="middle" fill="#111">(terminal)</text>
+<rect x="30" y="230" width="420" height="380" rx="18" fill="#eaf2fb" stroke="#5b86bd" stroke-width="1.5"/>
+<text x="240.0" y="256" font-size="17" text-anchor="middle" fill="#111" font-weight="bold">Client process (one per player)</text>
+<rect x="55" y="280" width="370" height="70" rx="10" fill="white" stroke="#3b3f4c" stroke-width="1.6"/>
+<text x="240.0" y="302" font-size="13.5" text-anchor="middle" fill="#111" font-weight="bold">Main thread</text>
+<text x="240.0" y="319" font-size="12" text-anchor="middle" fill="#111">command prompt: validates input, sends one line,</text>
+<text x="240.0" y="336" font-size="12" text-anchor="middle" fill="#111">then waits for its reply</text>
+<rect x="55" y="385" width="370" height="70" rx="10" fill="white" stroke="#3b3f4c" stroke-width="1.6"/>
+<text x="240.0" y="407" font-size="13.5" text-anchor="middle" fill="#111" font-weight="bold">Reader thread</text>
+<text x="240.0" y="424" font-size="12" text-anchor="middle" fill="#111">the only caller of recv(): bytes -&gt; lines -&gt; messages</text>
+<text x="240.0" y="441" font-size="12" text-anchor="middle" fill="#111">routes each message by its first line</text>
+<rect x="55" y="500" width="170" height="58" rx="10" fill="#fff8e6" stroke="#3b3f4c" stroke-width="1.6"/>
+<text x="140.0" y="522" font-size="13.5" text-anchor="middle" fill="#111" font-weight="bold">Reply queue</text>
+<text x="140.0" y="539" font-size="12" text-anchor="middle" fill="#111">mutex + condition</text>
+<rect x="255" y="500" width="170" height="58" rx="10" fill="white" stroke="#3b3f4c" stroke-width="1.6"/>
+<text x="340.0" y="522" font-size="13.5" text-anchor="middle" fill="#111" font-weight="bold">Terminal output</text>
+<text x="340.0" y="539" font-size="12" text-anchor="middle" fill="#111">pushes shown at once</text>
+<line x1="115" y1="180" x2="115" y2="280" stroke="#3b3f4c" stroke-width="2" marker-end="url(#ak)"/>
+<text x="125" y="212" font-size="12" text-anchor="start" fill="#3b3f4c">types commands</text>
+<line x1="140" y1="455" x2="140" y2="500" stroke="#3b3f4c" stroke-width="2" marker-end="url(#ak)"/>
+<text x="148" y="482" font-size="12" text-anchor="start" fill="#3b3f4c">reply</text>
+<line x1="340" y1="455" x2="340" y2="500" stroke="#3b3f4c" stroke-width="2" marker-end="url(#ak)"/>
+<text x="348" y="482" font-size="12" text-anchor="start" fill="#3b3f4c">push</text>
+<polyline points="55,529 42,529 42,315 55,315" fill="none" stroke="#3b3f4c" stroke-width="2" marker-end="url(#ak)"/>
+<text x="250" y="590" font-size="11.5" text-anchor="middle" fill="#333">next reply goes back to the main thread</text>
+<text x="240" y="640" font-size="12.5" text-anchor="middle" fill="#333">x N clients (20 tested), each with its own connection</text>
+<rect x="560" y="60" width="1010" height="920" rx="18" fill="#edf6ee" stroke="#5fa070" stroke-width="1.5"/>
+<text x="1065.0" y="86" font-size="17" text-anchor="middle" fill="#111" font-weight="bold">Server process</text>
+<rect x="590" y="110" width="250" height="76" rx="10" fill="white" stroke="#3b3f4c" stroke-width="1.6"/>
+<text x="715.0" y="132" font-size="13.5" text-anchor="middle" fill="#111" font-weight="bold">Accept loop (main thread)</text>
+<text x="715.0" y="149" font-size="12" text-anchor="middle" fill="#111">accepts, registers the connection,</text>
+<text x="715.0" y="166" font-size="12" text-anchor="middle" fill="#111">starts its handler thread,</text>
+<text x="715.0" y="183" font-size="12" text-anchor="middle" fill="#111">reaps finished threads</text>
+<rect x="590" y="250" width="250" height="178" rx="10" fill="white" stroke="#3b3f4c" stroke-width="1.6"/>
+<text x="715.0" y="272" font-size="13.5" text-anchor="middle" fill="#111" font-weight="bold">Client handler threads</text>
+<text x="715.0" y="289" font-size="12" text-anchor="middle" fill="#111">one per connection (N)</text>
+<text x="715.0" y="306" font-size="12" text-anchor="middle" fill="#111">owns a shared_ptr&lt;Connection&gt;</text>
+<text x="715.0" y="323" font-size="12" text-anchor="middle" fill="#111">reads lines, parses commands</text>
+<text x="715.0" y="340" font-size="12" text-anchor="middle" fill="#111">takes the game lane, applies</text>
+<text x="715.0" y="357" font-size="12" text-anchor="middle" fill="#111">the command, writes the effects</text>
+<rect x="590" y="490" width="250" height="92" rx="10" fill="#fff8e6" stroke="#3b3f4c" stroke-width="1.6"/>
+<text x="715.0" y="512" font-size="13.5" text-anchor="middle" fill="#111" font-weight="bold">Connections</text>
+<text x="715.0" y="529" font-size="12" text-anchor="middle" fill="#111">socket, receive buffer,</text>
+<text x="715.0" y="546" font-size="12" text-anchor="middle" fill="#111">write lock, 200 ms send timeout</text>
+<rect x="910" y="100" width="300" height="86" rx="10" fill="white" stroke="#3b3f4c" stroke-width="1.6"/>
+<text x="1060.0" y="122" font-size="13.5" text-anchor="middle" fill="#111" font-weight="bold">Game timer threads</text>
+<text x="1060.0" y="139" font-size="12" text-anchor="middle" fill="#111">one per game (G), ticks only its game</text>
+<text x="1060.0" y="156" font-size="12" text-anchor="middle" fill="#111">every 20 ms; pushes QUESTION,</text>
+<text x="1060.0" y="173" font-size="12" text-anchor="middle" fill="#111">ROUND_RESULT, GAME_END</text>
+<rect x="910" y="230" width="300" height="205" rx="18" fill="#f8f8ff" stroke="#8a8ac0" stroke-width="1.5"/>
+<text x="1060.0" y="256" font-size="17" text-anchor="middle" fill="#111" font-weight="bold">Game lanes (one mutex per game)</text>
+<rect x="935" y="268" width="250" height="52" rx="10" fill="white" stroke="#3b3f4c" stroke-width="1.6"/>
+<text x="1060.0" y="290" font-size="13.5" text-anchor="middle" fill="#111" font-weight="bold">Lane: game A</text>
+<text x="1060.0" y="307" font-size="12" text-anchor="middle" fill="#111">held from state change to last write</text>
+<rect x="935" y="332" width="250" height="52" rx="10" fill="white" stroke="#3b3f4c" stroke-width="1.6"/>
+<text x="1060.0" y="354" font-size="13.5" text-anchor="middle" fill="#111" font-weight="bold">Lane: game B</text>
+<text x="1060.0" y="371" font-size="12" text-anchor="middle" fill="#111">games write in parallel</text>
+<text x="1060" y="418" font-size="12" text-anchor="middle" fill="#333">lock order: lane &gt; routing &gt; state</text>
+<rect x="910" y="490" width="300" height="92" rx="10" fill="#fff8e6" stroke="#3b3f4c" stroke-width="1.6"/>
+<text x="1060.0" y="512" font-size="13.5" text-anchor="middle" fill="#111" font-weight="bold">Routing mutex (short, no socket I/O)</text>
+<text x="1060.0" y="529" font-size="12" text-anchor="middle" fill="#111">game code -&gt; lane map</text>
+<text x="1060.0" y="546" font-size="12" text-anchor="middle" fill="#111">connection id -&gt; Connection map</text>
+<rect x="1270" y="230" width="270" height="150" rx="10" fill="#fff8e6" stroke="#3b3f4c" stroke-width="1.6"/>
+<text x="1405.0" y="252" font-size="13.5" text-anchor="middle" fill="#111" font-weight="bold">GameManager (no sockets)</text>
+<text x="1405.0" y="269" font-size="12" text-anchor="middle" fill="#111">games table, players, scores,</text>
+<text x="1405.0" y="286" font-size="12" text-anchor="middle" fill="#111">round state, reconnect sessions</text>
+<text x="1405.0" y="303" font-size="12" text-anchor="middle" fill="#111">state mutex, short operations</text>
+<text x="1405.0" y="320" font-size="12" text-anchor="middle" fill="#111">returns effects (messages to send)</text>
+<rect x="1270" y="440" width="270" height="70" rx="10" fill="white" stroke="#3b3f4c" stroke-width="1.6"/>
+<text x="1405.0" y="462" font-size="13.5" text-anchor="middle" fill="#111" font-weight="bold">Logger</text>
+<text x="1405.0" y="479" font-size="12" text-anchor="middle" fill="#111">timestamped server.log</text>
+<text x="1405.0" y="496" font-size="12" text-anchor="middle" fill="#111">tokens never logged</text>
+<rect x="1270" y="540" width="270" height="60" rx="10" fill="white" stroke="#3b3f4c" stroke-width="1.6"/>
+<text x="1405.0" y="562" font-size="13.5" text-anchor="middle" fill="#111" font-weight="bold">Question bank</text>
+<text x="1405.0" y="579" font-size="12" text-anchor="middle" fill="#111">file read once at startup</text>
+<line x1="425" y1="315" x2="590" y2="315" stroke="#1b5ea8" stroke-width="3" marker-end="url(#ab)"/>
+<text x="508" y="302" font-size="12" text-anchor="middle" fill="#1b5ea8">TCP request</text>
+<text x="508" y="338" font-size="11.5" text-anchor="middle" fill="#1b5ea8">one line + newline</text>
+<line x1="590" y1="420" x2="425" y2="420" stroke="#b5521b" stroke-width="3" marker-end="url(#ao)"/>
+<text x="508" y="408" font-size="12" text-anchor="middle" fill="#b5521b">TCP reply or push</text>
+<text x="508" y="440" font-size="11.5" text-anchor="middle" fill="#b5521b">blank-line terminated</text>
+<line x1="715" y1="186" x2="715" y2="250" stroke="#3b3f4c" stroke-width="2" marker-end="url(#ak)"/>
+<text x="723" y="222" font-size="12" text-anchor="start" fill="#3b3f4c">starts</text>
+<line x1="840" y1="330" x2="935" y2="294" stroke="#3b3f4c" stroke-width="2" marker-end="url(#ak)"/>
+<text x="860" y="300" font-size="12" text-anchor="start" fill="#3b3f4c">lock lane</text>
+<line x1="1060" y1="186" x2="1060" y2="230" stroke="#3b3f4c" stroke-width="2" marker-end="url(#ak)"/>
+<text x="1068" y="212" font-size="12" text-anchor="start" fill="#3b3f4c">lock lane</text>
+<line x1="1060" y1="435" x2="1060" y2="490" stroke="#3b3f4c" stroke-width="2" marker-end="url(#ak)"/>
+<line x1="1185" y1="300" x2="1270" y2="300" stroke="#3b3f4c" stroke-width="2" marker-end="url(#ak)"/>
+<text x="1228" y="290" font-size="11" text-anchor="middle" fill="#3b3f4c">state calls</text>
+<line x1="715" y1="428" x2="715" y2="490" stroke="#3b3f4c" stroke-width="2" marker-end="url(#ak)"/>
+<text x="723" y="462" font-size="12" text-anchor="start" fill="#3b3f4c">deliver effects</text>
+<line x1="910" y1="540" x2="840" y2="540" stroke="#3b3f4c" stroke-width="2" stroke-dasharray="9 6" marker-end="url(#ak)"/>
+<text x="875" y="530" font-size="12" text-anchor="middle" fill="#3b3f4c">look up</text>
+<text x="1060" y="660" font-size="12.5" text-anchor="middle" fill="#333">Handler N and the timer of game G only ever block each other when they</text>
+<text x="1060" y="678" font-size="12.5" text-anchor="middle" fill="#333">work on the same game; a stalled reader in game A cannot delay game B.</text>
+<rect x="910" y="720" width="630" height="170" rx="10" fill="#fdfdfd" stroke="#3b3f4c" stroke-width="1.6" stroke-dasharray="6 4"/>
+<text x="1225.0" y="742" font-size="13.5" text-anchor="middle" fill="#111" font-weight="bold">Shutdown and cleanup</text>
+<text x="1225.0" y="759" font-size="12" text-anchor="middle" fill="#111">Ctrl+C writes to a wake-up pipe; the accept loop stops.</text>
+<text x="1225.0" y="776" font-size="12" text-anchor="middle" fill="#111">Handlers see the stop flag within 50 ms; timers see it each tick.</text>
+<text x="1225.0" y="793" font-size="12" text-anchor="middle" fill="#111">Every worker sets a done flag as its last step; finished workers are joined</text>
+<text x="1225.0" y="810" font-size="12" text-anchor="middle" fill="#111">by the accept loop, and all remaining workers are joined at shutdown</text>
+<text x="1225.0" y="827" font-size="12" text-anchor="middle" fill="#111">(handlers first, then timers) before state is destroyed.</text>
+</svg>

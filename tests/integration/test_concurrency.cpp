@@ -629,3 +629,19 @@ TEST_CASE("T43 socket: a join in the final intermission gets no question and GAM
     CHECK(end.lines == std::vector<std::string>({"PUSH GAME_END COMPLETE", "FINAL RESULTS", "Robert:1", "Late:0"}));
     CHECK(late.wait_for_close());
 }
+
+TEST_CASE("Phase3 nothing can follow a connection's final message") {
+    int fds[2];
+    CHECK_EQ(socketpair(AF_UNIX, SOCK_STREAM, 0, fds), 0);
+    Connection sender(fds[0]);
+    Connection receiver(fds[1]);
+    CHECK(sender.send_final_message({"PUSH GAME_END COMPLETE"}));
+    CHECK(sender.is_closing());
+    CHECK(sender.send_message({"401 late reply"}));  // dropped, not an error
+    std::string line;
+    CHECK(receiver.read_line(line, 500) == Connection::ReadStatus::Line);
+    CHECK_EQ(line, std::string("PUSH GAME_END COMPLETE"));
+    CHECK(receiver.read_line(line, 500) == Connection::ReadStatus::Line);
+    CHECK_EQ(line, std::string(""));
+    CHECK(receiver.read_line(line, 500) == Connection::ReadStatus::Closed);
+}

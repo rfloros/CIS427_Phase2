@@ -404,14 +404,10 @@ void Server::apply(const Outcome& outcome, std::vector<Delivery> deliveries) {
 void Server::deliver(const std::vector<Delivery>& deliveries) {
     for (const auto& delivery : deliveries) {
         Connection& connection = *delivery.connection;
-        if (!connection.send_message(delivery.effect.lines)) {
-            // The handler notices the flag, cleans up, and closes.
-            connection.shutdown_both();
-            continue;
-        }
-        if (delivery.effect.close_after) {
-            connection.shutdown_write();
-            connection.mark_closing();
-        }
+        const bool sent = delivery.effect.close_after
+                              ? connection.send_final_message(delivery.effect.lines)
+                              : connection.send_message(delivery.effect.lines);
+        // The handler notices the flag, cleans up, and closes.
+        if (!sent) connection.shutdown_both();
     }
 }
