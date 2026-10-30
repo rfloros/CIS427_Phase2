@@ -215,11 +215,18 @@ Lines push_round_result(int number, char correct, const std::vector<Standing>& s
     return lines;
 }
 
+const char* game_end_reason_text(GameEndReason reason) {
+    switch (reason) {
+        case GameEndReason::Complete: return "COMPLETE";
+        case GameEndReason::HostEnded: return "HOST_ENDED";
+        case GameEndReason::HostQuit: return "HOST_QUIT";
+        case GameEndReason::HostExpired: return "HOST_EXPIRED";
+    }
+    return "COMPLETE";
+}
+
 Lines push_game_end(GameEndReason reason, const std::vector<Standing>& standings) {
-    const char* reason_text = "COMPLETE";
-    if (reason == GameEndReason::HostEnded) reason_text = "HOST_ENDED";
-    if (reason == GameEndReason::HostQuit) reason_text = "HOST_QUIT";
-    Lines lines{std::string("PUSH GAME_END ") + reason_text, "FINAL RESULTS"};
+    Lines lines{std::string("PUSH GAME_END ") + game_end_reason_text(reason), "FINAL RESULTS"};
     for (const auto& standing : standings) {
         lines.push_back(standing.name + ":" + std::to_string(standing.score));
     }

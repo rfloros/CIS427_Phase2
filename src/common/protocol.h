@@ -48,7 +48,10 @@ struct Standing {
     int score = 0;
 };
 
-enum class GameEndReason { Complete, HostEnded, HostQuit };
+enum class GameEndReason { Complete, HostEnded, HostQuit, HostExpired };
+
+// The wire and log spelling of a reason, e.g. "HOST_EXPIRED".
+const char* game_end_reason_text(GameEndReason reason);
 
 // First line of a reply for `code`. Only 423 uses `available_questions`.
 std::string status_line(int code, int available_questions = 0);

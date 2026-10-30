@@ -43,16 +43,29 @@ Connection::ReadStatus Connection::read_line(std::string& line, int timeout_ms) 
     }
 }
 
-bool Connection::send_message(const std::vector<std::string>& lines) {
+std::string Connection::frame(const std::vector<std::string>& lines) {
     std::string bytes;
     for (const auto& line : lines) bytes += line + "\n";
-    bytes += "\n";
-    return send_raw(bytes);
+    return bytes + "\n";
+}
+
+bool Connection::send_message(const std::vector<std::string>& lines) {
+    return send_raw(frame(lines));
 }
 
 bool Connection::send_raw(const std::string& bytes) {
     std::lock_guard<std::mutex> lock(write_mutex_);
+    if (closing_) return true;  // the session already ended; a late message is dropped
     return send_all_locked(bytes);
+}
+
+bool Connection::send_final_message(const std::vector<std::string>& lines) {
+    std::lock_guard<std::mutex> lock(write_mutex_);
+    if (closing_) return true;
+    if (!send_all_locked(frame(lines))) return false;
+    shutdown(fd_, SHUT_WR);  // tells the peer no more data is coming but lets it finish reading
+    closing_ = true;
+    return true;
 }
 
 // A partial send is retried until everything is written. MSG_NOSIGNAL turns a
@@ -77,7 +90,5 @@ void Connection::set_send_timeout_ms(int milliseconds) {
     timeval timeout{milliseconds / 1000, (milliseconds % 1000) * 1000};
     setsockopt(fd_, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
 }
-
-void Connection::shutdown_write() { shutdown(fd_, SHUT_WR); }
 
 void Connection::shutdown_both() { shutdown(fd_, SHUT_RDWR); }

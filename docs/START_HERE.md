@@ -1,4 +1,4 @@
-# START HERE: TermTrivia (CIS 427, Phase 2)
+# START HERE: TermTrivia (CIS 427, Phase 2 brief; Phase 3 now implemented)
 
 This file tells an agent WHAT to build and in what order. HOW to work (TDD steps, git habits, when to pause) is defined in the repo's AGENTS.md. Follow that for process. This file does not override it.
 
@@ -6,7 +6,7 @@ This file tells an agent WHAT to build and in what order. HOW to work (TDD steps
 
 TermTrivia is a terminal multiplayer trivia game over TCP, written in C++. One server runs games, and each player runs a client in a terminal. A host creates a game and gets a join code, players join with the code, the host starts the game, and then questions arrive on a timer (20 s per question, 5 s intermission, 10 s after the last question). Scoring depends only on correctness, never speed. Players who lose their connection can reconnect with a private token and keep their score.
 
-**This is Phase 2: one client and one server.** The server accepts one active client at a time. A single host can create a game, start it, answer, view the leaderboard, end it, quit, and reconnect. Multiple simultaneous clients are Phase 3, but design for it now (see "Design for Phase 3" below).
+**This brief was written for Phase 2 (one client and one server).** Phase 3 is now implemented: the server serves many clients and games at once (see `docs/architecture.md` and `docs/phase3-technical-report.pdf`). The Phase 2 text below is kept as the original brief; where it says the server accepts one client at a time, that was true for Phase 2 only. A single host can create a game, start it, answer, view the leaderboard, end it, quit, and reconnect. Multiple simultaneous clients are Phase 3, but design for it now (see "Design for Phase 3" below).
 
 ## Two rules that shape everything
 

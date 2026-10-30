@@ -27,24 +27,27 @@ public:
     // Sends the lines plus the blank terminator as one buffer under the write
     // lock, so two messages are never mixed. False means the send failed.
     bool send_message(const std::vector<std::string>& lines);
+    // Sends the message as the last one on this connection: it is written,
+    // the write side is shut down, and the connection is marked closing, all
+    // under the write lock. Any later send is silently dropped, so nothing can
+    // follow it or slip in before it is complete.
+    bool send_final_message(const std::vector<std::string>& lines);
     // Sends exactly these bytes (used for client commands and by tests).
     bool send_raw(const std::string& bytes);
 
     // Bounds how long one blocked write may wait.
     void set_send_timeout_ms(int milliseconds);
-    // Tells the peer no more data is coming but still lets it finish reading.
-    void shutdown_write();
     // Wakes a thread blocked in read_line from another thread.
     void shutdown_both();
 
     int fd() const { return fd_; }
 
-    // Flags set by other threads and read by the owner of the connection.
-    void mark_closing() { closing_ = true; }
+    // Set once the final message was sent; read by the owner of the connection.
     bool is_closing() const { return closing_; }
     bool is_broken() const { return broken_; }
 
 private:
+    static std::string frame(const std::vector<std::string>& lines);
     bool send_all_locked(const std::string& bytes);
 
     int fd_;

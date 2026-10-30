@@ -56,18 +56,42 @@ Outcome GameManager::tick(double now) {
     Outcome outcome;
     std::vector<std::string> codes;
     for (const auto& entry : games_) codes.push_back(entry.first);
-
-    for (const auto& code : codes) {
-        Game* game = find_game(code);
-        expire_pending_players(*game, now, outcome);
-        if (game->players.empty()) {
-            outcome.events.push_back("game " + code + " removed: no players left");
-            games_.erase(code);
-            continue;
-        }
-        advance_game(*game, now, outcome);
-    }
+    for (const auto& code : codes) tick_game_locked(code, now, outcome);
     return outcome;
+}
+
+Outcome GameManager::tick_game(const std::string& code, double now) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    Outcome outcome;
+    tick_game_locked(code, now, outcome);
+    return outcome;
+}
+
+void GameManager::tick_game_locked(const std::string& code, double now, Outcome& outcome) {
+    Game* game = find_game(code);
+    if (game == nullptr) return;
+    if (expire_pending_players(*game, now, outcome)) return;  // the lobby ended with its host
+    if (game->players.empty()) {
+        outcome.events.push_back("game " + code + " removed: no players left");
+        outcome.ended_games.push_back(code);
+        games_.erase(code);
+        return;
+    }
+    advance_game(*game, now, outcome);
+}
+
+void GameManager::discard_game(const std::string& code) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    const Game* game = find_game(code);
+    if (game == nullptr) return;
+    for (const auto& player : game->players) game_code_of_conn_.erase(player.conn);
+    games_.erase(code);
+}
+
+std::string GameManager::game_code_of(ConnId conn) const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    const auto found = game_code_of_conn_.find(conn);
+    return found == game_code_of_conn_.end() ? std::string() : found->second;
 }
 
 // ---------------------------------------------------------------- commands
@@ -98,6 +122,7 @@ Outcome GameManager::create_game(ConnId conn, const Command& command) {
     outcome.events.push_back("game " + game.code + " created by " + host.name + " with " +
                              std::to_string(command.num_questions) + " questions");
     game_code_of_conn_[conn] = game.code;
+    outcome.created_game = game.code;
     games_[game.code] = game;
     return outcome;
 }
@@ -326,26 +351,32 @@ void GameManager::end_game(Game& game, GameEndReason reason, ConnId skip_conn, O
         if (player.conn != skip_conn) outcome.effects.push_back({player.conn, message, true});
         game_code_of_conn_.erase(player.conn);
     }
-    const char* reason_text = reason == GameEndReason::Complete    ? "COMPLETE"
-                              : reason == GameEndReason::HostEnded ? "HOST_ENDED"
-                                                                   : "HOST_QUIT";
-    outcome.events.push_back("game " + game.code + " ended: " + reason_text);
+    outcome.events.push_back("game " + game.code + " ended: " + game_end_reason_text(reason));
+    outcome.ended_games.push_back(game.code);
     games_.erase(game.code);  // also drops its pending reconnect sessions
 }
 
-void GameManager::expire_pending_players(Game& game, double now, Outcome& outcome) {
+// Returns true when the game ended because its host expired in the lobby.
+// After play has started an expired host is simply removed like any other
+// expired player, and nobody takes over the host powers.
+bool GameManager::expire_pending_players(Game& game, double now, Outcome& outcome) {
     const auto expired = [&](const Player& player) {
         return player.state == PlayerState::DisconnectedPending &&
                now - player.disconnected_at > timings_.reconnect;
     };
+    bool host_expired_in_lobby = false;
     for (const auto& player : game.players) {
-        if (expired(player)) {
-            outcome.events.push_back("game " + game.code + ": reconnect window expired for " +
-                                     player.name);
-        }
+        if (!expired(player)) continue;
+        outcome.events.push_back("game " + game.code + ": reconnect window expired for " +
+                                 player.name);
+        host_expired_in_lobby = host_expired_in_lobby ||
+                                (player.is_host && game.state == GameState::Lobby);
     }
     game.players.erase(std::remove_if(game.players.begin(), game.players.end(), expired),
                        game.players.end());
+    if (!host_expired_in_lobby) return false;
+    end_game(game, GameEndReason::HostExpired, 0, outcome);
+    return true;
 }
 
 void GameManager::advance_game(Game& game, double now, Outcome& outcome) {

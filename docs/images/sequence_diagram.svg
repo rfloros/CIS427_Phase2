@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1699" viewBox="0 0 1500 1699" font-family="DejaVu Sans, Arial, sans-serif">
+<defs><marker id="ak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3b3f4c"/></marker><marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1b5ea8"/></marker><marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#b5521b"/></marker><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#a01c1c"/></marker></defs>
+<rect width="1500" height="1699" fill="white"/>
+<text x="750.0" y="34" font-size="24" text-anchor="middle" fill="#111" font-weight="bold">TermTrivia sequence (Phase 3): two clients, one game, a stalled client in another game</text>
+<rect x="20" y="60" width="220" height="52" rx="10" fill="#eaf2fb" stroke="#3b3f4c" stroke-width="1.6"/>
+<text x="130.0" y="82" font-size="13.5" text-anchor="middle" fill="#111" font-weight="bold">Host client A</text>
+<line x1="130" y1="112" x2="130" y2="1410" stroke="#888" stroke-width="1.3" stroke-dasharray="7 6"/>
+<rect x="290" y="60" width="220" height="52" rx="10" fill="#eaf2fb" stroke="#3b3f4c" stroke-width="1.6"/>
+<text x="400.0" y="82" font-size="13.5" text-anchor="middle" fill="#111" font-weight="bold">Player client B</text>
+<line x1="400" y1="112" x2="400" y2="1410" stroke="#888" stroke-width="1.3" stroke-dasharray="7 6"/>
+<rect x="570" y="60" width="220" height="52" rx="10" fill="#edf6ee" stroke="#3b3f4c" stroke-width="1.6"/>
+<text x="680.0" y="82" font-size="13.5" text-anchor="middle" fill="#111" font-weight="bold">Handler threads A, B</text>
+<line x1="680" y1="112" x2="680" y2="1410" stroke="#888" stroke-width="1.3" stroke-dasharray="7 6"/>
+<rect x="870" y="60" width="220" height="52" rx="10" fill="#edf6ee" stroke="#3b3f4c" stroke-width="1.6"/>
+<text x="980.0" y="82" font-size="13.5" text-anchor="middle" fill="#111" font-weight="bold">Game 1 lane + timer</text>
+<line x1="980" y1="112" x2="980" y2="1410" stroke="#888" stroke-width="1.3" stroke-dasharray="7 6"/>
+<rect x="1180" y="60" width="220" height="52" rx="10" fill="#edf6ee" stroke="#3b3f4c" stroke-width="1.6"/>
+<text x="1290.0" y="82" font-size="13.5" text-anchor="middle" fill="#111" font-weight="bold">Game 2 (other game)</text>
+<line x1="1290" y1="112" x2="1290" y2="1410" stroke="#888" stroke-width="1.3" stroke-dasharray="7 6"/>
+<text x="30" y="150" font-size="15" text-anchor="start" fill="#333" font-weight="bold">1. Both clients connect; each gets its own handler thread, so neither waits for the other</text>
+<line x1="30" y1="158" x2="1470" y2="158" stroke="#ccc"/>
+<line x1="130" y1="195" x2="680" y2="195" stroke="#3b3f4c" stroke-width="2" marker-end="url(#ak)"/>
+<text x="405.0" y="187" font-size="12.5" text-anchor="middle" fill="#3b3f4c">TCP connect (handler thread 1 starts)</text>
+<line x1="400" y1="235" x2="680" y2="235" stroke="#3b3f4c" stroke-width="2" marker-end="url(#ak)"/>
+<text x="540.0" y="227" font-size="12.5" text-anchor="middle" fill="#3b3f4c">TCP connect (handler thread 2 starts, at the same time)</text>
+<line x1="130" y1="280" x2="680" y2="280" stroke="#1b5ea8" stroke-width="2" marker-end="url(#ab)"/>
+<text x="405.0" y="272" font-size="12.5" text-anchor="middle" fill="#1b5ea8">CREATE_GAME Robert 3</text>
+<rect x="784.3" y="308" width="391.40000000000003" height="30" rx="10" fill="#fff8e6" stroke="#b79c3a" stroke-width="1.6"/>
+<text x="980.0" y="330" font-size="13.5" text-anchor="middle" fill="#111" font-weight="bold">new game 1: lane held until the 200 is written</text>
+<line x1="680" y1="350" x2="130" y2="350" stroke="#b5521b" stroke-width="2" marker-end="url(#ao)"/>
+<text x="405.0" y="342" font-size="12.5" text-anchor="middle" fill="#b5521b">200 OK / 7QXA / token</text>
+<line x1="400" y1="395" x2="680" y2="395" stroke="#1b5ea8" stroke-width="2" marker-end="url(#ab)"/>
+<text x="540.0" y="387" font-size="12.5" text-anchor="middle" fill="#1b5ea8">JOIN_GAME 7QXA Matthew</text>
+<line x1="680" y1="433" x2="400" y2="433" stroke="#b5521b" stroke-width="2" marker-end="url(#ao)"/>
+<text x="540.0" y="425" font-size="12.5" text-anchor="middle" fill="#b5521b">200 OK / 2 players / token</text>
+<text x="30" y="488" font-size="15" text-anchor="start" fill="#333" font-weight="bold">2. Start: the reply is always written before the first push, to every player</text>
+<line x1="30" y1="496" x2="1470" y2="496" stroke="#ccc"/>
+<line x1="130" y1="533" x2="680" y2="533" stroke="#1b5ea8" stroke-width="2" marker-end="url(#ab)"/>
+<text x="405.0" y="525" font-size="12.5" text-anchor="middle" fill="#1b5ea8">START_ROUND</text>
+<rect x="808.0" y="557" width="344.0" height="30" rx="10" fill="#fff8e6" stroke="#b79c3a" stroke-width="1.6"/>
+<text x="980.0" y="579" font-size="13.5" text-anchor="middle" fill="#111" font-weight="bold">lane 1 held: reply, then question pushes</text>
+<line x1="680" y1="593" x2="130" y2="593" stroke="#b5521b" stroke-width="2" marker-end="url(#ao)"/>
+<text x="405.0" y="585" font-size="12.5" text-anchor="middle" fill="#b5521b">200 OK</text>
+<line x1="680" y1="627" x2="130" y2="627" stroke="#a01c1c" stroke-width="2" stroke-dasharray="9 6" marker-end="url(#ar)"/>
+<text x="405.0" y="619" font-size="12.5" text-anchor="middle" fill="#a01c1c">PUSH QUESTION 1</text>
+<line x1="680" y1="661" x2="400" y2="661" stroke="#a01c1c" stroke-width="2" stroke-dasharray="9 6" marker-end="url(#ar)"/>
+<text x="540.0" y="653" font-size="12.5" text-anchor="middle" fill="#a01c1c">PUSH QUESTION 1</text>
+<text x="30" y="716" font-size="15" text-anchor="start" fill="#333" font-weight="bold">3. Both answer at the same moment: each answer counts once</text>
+<line x1="30" y1="724" x2="1470" y2="724" stroke="#ccc"/>
+<line x1="130" y1="761" x2="680" y2="761" stroke="#1b5ea8" stroke-width="2" marker-end="url(#ab)"/>
+<text x="405.0" y="753" font-size="12.5" text-anchor="middle" fill="#1b5ea8">SUBMIT_ANSWER A</text>
+<line x1="400" y1="787" x2="680" y2="787" stroke="#1b5ea8" stroke-width="2" marker-end="url(#ab)"/>
+<text x="540.0" y="779" font-size="12.5" text-anchor="middle" fill="#1b5ea8">SUBMIT_ANSWER B</text>
+<rect x="811.95" y="813" width="336.1" height="30" rx="10" fill="#fff8e6" stroke="#b79c3a" stroke-width="1.6"/>
+<text x="980.0" y="835" font-size="13.5" text-anchor="middle" fill="#111" font-weight="bold">handlers queue on lane 1, one at a time</text>
+<line x1="680" y1="855" x2="130" y2="855" stroke="#b5521b" stroke-width="2" marker-end="url(#ao)"/>
+<text x="405.0" y="847" font-size="12.5" text-anchor="middle" fill="#b5521b">200 OK</text>
+<line x1="680" y1="885" x2="400" y2="885" stroke="#b5521b" stroke-width="2" marker-end="url(#ao)"/>
+<text x="540.0" y="877" font-size="12.5" text-anchor="middle" fill="#b5521b">200 OK</text>
+<line x1="680" y1="919" x2="130" y2="919" stroke="#a01c1c" stroke-width="2" stroke-dasharray="9 6" marker-end="url(#ar)"/>
+<text x="405.0" y="911" font-size="12.5" text-anchor="middle" fill="#a01c1c">PUSH ROUND_RESULT 1 (all answered)</text>
+<line x1="680" y1="949" x2="400" y2="949" stroke="#a01c1c" stroke-width="2" stroke-dasharray="9 6" marker-end="url(#ar)"/>
+<text x="540.0" y="941" font-size="12.5" text-anchor="middle" fill="#a01c1c">PUSH ROUND_RESULT 1</text>
+<text x="30" y="1004" font-size="15" text-anchor="start" fill="#333" font-weight="bold">4. Another game is unaffected by a stalled reader in game 1</text>
+<line x1="30" y1="1012" x2="1470" y2="1012" stroke="#ccc"/>
+<rect x="216.64999999999998" y="1037" width="446.70000000000005" height="30" rx="10" fill="#fff8e6" stroke="#b79c3a" stroke-width="1.6"/>
+<text x="440.0" y="1059" font-size="13.5" text-anchor="middle" fill="#111" font-weight="bold">client B stops reading; writes to B time out (200 ms)</text>
+<line x1="1290" y1="1089" x2="680" y2="1089" stroke="#1b5ea8" stroke-width="2" marker-end="url(#ab)"/>
+<text x="985.0" y="1081" font-size="12.5" text-anchor="middle" fill="#1b5ea8">LEADERBOARD (game 2 client)</text>
+<line x1="680" y1="1123" x2="1290" y2="1123" stroke="#b5521b" stroke-width="2" marker-end="url(#ao)"/>
+<text x="985.0" y="1115" font-size="12.5" text-anchor="middle" fill="#b5521b">200 OK (under 500 ms: game 2 has its own lane)</text>
+<text x="30" y="1178" font-size="15" text-anchor="start" fill="#333" font-weight="bold">5. Unexpected disconnect and reconnect</text>
+<line x1="30" y1="1186" x2="1470" y2="1186" stroke="#ccc"/>
+<line x1="400" y1="1223" x2="460" y2="1223" stroke="#3b3f4c" stroke-width="2" marker-end="url(#ak)"/>
+<text x="466" y="1227" font-size="12.5" text-anchor="start" fill="#111">B is killed (no QUIT)</text>
+<rect x="748.75" y="1241" width="462.5" height="30" rx="10" fill="#fff8e6" stroke="#b79c3a" stroke-width="1.6"/>
+<text x="980.0" y="1263" font-size="13.5" text-anchor="middle" fill="#111" font-weight="bold">B kept as DISCONNECTED_PENDING for 60 s; game continues</text>
+<line x1="400" y1="1293" x2="680" y2="1293" stroke="#1b5ea8" stroke-width="2" marker-end="url(#ab)"/>
+<text x="540.0" y="1285" font-size="12.5" text-anchor="middle" fill="#1b5ea8">RECONNECT Matthew 7QXA token (new connection)</text>
+<line x1="680" y1="1327" x2="400" y2="1327" stroke="#b5521b" stroke-width="2" marker-end="url(#ao)"/>
+<text x="540.0" y="1319" font-size="12.5" text-anchor="middle" fill="#b5521b">200 OK / score / question number</text>
+<line x1="680" y1="1361" x2="400" y2="1361" stroke="#a01c1c" stroke-width="2" stroke-dasharray="9 6" marker-end="url(#ar)"/>
+<text x="540.0" y="1353" font-size="12.5" text-anchor="middle" fill="#a01c1c">PUSH QUESTION n (if a round is open)</text>
+<text x="30" y="1416" font-size="15" text-anchor="start" fill="#333" font-weight="bold">6. Game ends: every connected player gets the push, then the sockets close</text>
+<line x1="30" y1="1424" x2="1470" y2="1424" stroke="#ccc"/>
+<line x1="980" y1="1461" x2="680" y2="1461" stroke="#3b3f4c" stroke-width="2" marker-end="url(#ak)"/>
+<text x="830.0" y="1453" font-size="12.5" text-anchor="middle" fill="#3b3f4c">timer: last round closed, final intermission over</text>
+<line x1="680" y1="1495" x2="130" y2="1495" stroke="#a01c1c" stroke-width="2" stroke-dasharray="9 6" marker-end="url(#ar)"/>
+<text x="405.0" y="1487" font-size="12.5" text-anchor="middle" fill="#a01c1c">PUSH GAME_END COMPLETE / FINAL RESULTS</text>
+<line x1="680" y1="1525" x2="400" y2="1525" stroke="#a01c1c" stroke-width="2" stroke-dasharray="9 6" marker-end="url(#ar)"/>
+<text x="540.0" y="1517" font-size="12.5" text-anchor="middle" fill="#a01c1c">PUSH GAME_END COMPLETE / FINAL RESULTS</text>
+<rect x="432.95" y="1547" width="494.1" height="30" rx="10" fill="#fff8e6" stroke="#b79c3a" stroke-width="1.6"/>
+<text x="680.0" y="1569" font-size="13.5" text-anchor="middle" fill="#111" font-weight="bold">server closes both sockets; game 1 and its lane are removed</text>
+<rect x="290.75" y="1599" width="778.5" height="30" rx="10" fill="#fff8e6" stroke="#b79c3a" stroke-width="1.6"/>
+<text x="680.0" y="1621" font-size="13.5" text-anchor="middle" fill="#111" font-weight="bold">HOST_EXPIRED: if the host never returns in the lobby, players get GAME_END HOST_EXPIRED instead</text>
+<text x="30" y="1669" font-size="13" text-anchor="start" fill="#111" font-weight="bold">Legend:</text>
+<line x1="100" y1="1665" x2="160" y2="1665" stroke="#1b5ea8" stroke-width="2" marker-end="url(#ab)"/>
+<text x="168" y="1669" font-size="12" text-anchor="start" fill="#111">request</text>
+<line x1="250" y1="1665" x2="310" y2="1665" stroke="#b5521b" stroke-width="2" marker-end="url(#ao)"/>
+<text x="318" y="1669" font-size="12" text-anchor="start" fill="#111">reply (one per request)</text>
+<line x1="520" y1="1665" x2="580" y2="1665" stroke="#a01c1c" stroke-width="2" stroke-dasharray="9 6" marker-end="url(#ar)"/>
+<text x="588" y="1669" font-size="12" text-anchor="start" fill="#111">push (starts with PUSH)</text>
+</svg>

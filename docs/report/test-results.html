@@ -1,0 +1,22 @@
+<p>Full detail, environment, and limitations: <code>docs/phase3-test-report.md</code>. Results were produced on one
+machine (Omarchy Linux, g++ 16.2.1, 8 CPUs) over localhost by the assistant that wrote the code; the team has not yet
+re-run them.</p>
+<table border="1" cellpadding="4" cellspacing="0" width="100%">
+<tr><th>Measure</th><th>Result</th></tr>
+<tr><td>Unit tests (<code>make test</code>)</td><td>116 tests run, 0 check failures</td></tr>
+<tr><td>Real-socket tests</td><td>75 tests run, 0 check failures</td></tr>
+<tr><td>Scripted scenarios and deliverable audit</td><td>all checks passed</td></tr>
+<tr><td>Real 20/5/10/60 second timers</td><td>all checks passed (<code>make test-default-timers</code>)</td></tr>
+<tr><td>New Phase 3 socket tests (T10, T11, T22, T23, T35 to T47)</td><td>all pass; each repeated 10 times with 150 of 150 runs passing</td></tr>
+<tr><td>20 players, real timers (NFR-01)</td><td>reply 1 ms (limit 500 ms), question push 2 ms (limit 1 s), 20-second round timer 20 001 to 20 006 ms (limit plus or minus 1 s)</td></tr>
+<tr><td>ThreadSanitizer, 75 socket tests</td><td>no report in Phase 3 code; one report in a Phase 2 startup test (not changed)</td></tr>
+</table>
+<p><b>What the key tests showed.</b> Simultaneous answers each counted once with correct scores (T36); a same-name join
+race gave one 200 and one 409 (T37); ending game A left game B running (T38); three stalled readers in one game did not
+delay another game's replies beyond 500 ms (T40), while the earlier single-lock design failed that test in 5 of 6
+runs; a lobby with an absent host ended with <code>HOST_EXPIRED</code> and a started game ran on to
+<code>COMPLETE</code> (T42, T47); a join in the final intermission appeared in the final results (T43); and failed
+thread launches, shutdown, and thread cleanup behaved as designed (T44). Testing also found one real bug, a reply
+that could be written after <code>GAME_END</code>; it was fixed and covered by a regression test.</p>
+<p><b>Limits of this evidence:</b> one machine, localhost only, at most 20 players, and timing bounds that assume a
+lightly loaded machine.</p>

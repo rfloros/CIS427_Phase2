@@ -1,0 +1,15 @@
+<p><b>Design.</b> The server uses one thread per connected client and one timer thread per active game. Per client
+the cost is a thread stack, a socket, and small buffers; per game it is a thread, a lane, and a few hundred bytes of
+state. Within a game all events are handled one at a time under that game's lane; different games run in parallel.</p>
+<p><b>Measured.</b> With 20 healthy localhost clients in one game and the real timers, the leaderboard reply took
+1 ms, the START_ROUND reply 1 ms, the slowest client saw question 1 within 2 ms, and the 20-second round timer closed
+within 6 ms of 20 seconds. Three clients that stopped reading in one game did not delay another game's reply beyond
+500 ms (T40). These meet NFR-01 for up to 20 players on one machine.</p>
+<p><b>Where it would stop scaling.</b> (1) Threads and memory grow with clients and games, so a few thousand
+connections would be limited by threads, stacks, and context switching. (2) A broadcast writes to each player in turn
+inside the game's lane; with many players or slow readers one game's round could be delayed by up to 200 ms per stalled
+reader. (3) Everything lives in one process on one machine, with no persistence or failover. (4) The game-state mutex
+is shared by all games, but it is held only for short in-memory operations, never for socket I/O.</p>
+<p><b>What would come next.</b> An event loop or a worker pool, a per-connection outbound queue with a writer so a slow
+reader never delays a broadcast, and sharding games across processes. We did not measure 25 or more players, many
+simultaneous games, or a real network, so no claim is made about them.</p>

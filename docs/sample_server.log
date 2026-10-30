@@ -1,22 +1,53 @@
-2026-10-12T20:11:08 INFO server starting
-2026-10-12T20:11:08 INFO listening on 0.0.0.0:27304
-2026-10-12T20:11:08 INFO client 1 connected from 127.0.0.1:60482
-2026-10-12T20:11:08 INFO client 1 request CREATE_GAME -> 200
-2026-10-12T20:11:08 INFO game 8YOS created by Robert with 3 questions
-2026-10-12T20:11:08 INFO client 1 request START_ROUND -> 200
-2026-10-12T20:11:08 INFO game 8YOS: question 1 opened
-2026-10-12T20:11:08 WARN client 1 protocol error 300: rejected unknown request
-2026-10-12T20:11:08 WARN client 1 protocol error 423: rejected CREATE_GAME request
-2026-10-12T20:11:09 INFO client 1 request SUBMIT_ANSWER -> 200
-2026-10-12T20:11:09 INFO game 8YOS: round 1 closed
-2026-10-12T20:11:09 INFO client 1 request LEADERBOARD -> 200
-2026-10-12T20:11:09 INFO game 8YOS: player Robert disconnected, reconnect window open
-2026-10-12T20:11:09 INFO client 1 disconnected: closed by peer
-2026-10-12T20:11:11 INFO client 2 connected from 127.0.0.1:60494
-2026-10-12T20:11:11 INFO client 2 request RECONNECT -> 200
-2026-10-12T20:11:11 INFO game 8YOS: player Robert reconnected
-2026-10-12T20:11:11 INFO client 2 request LEADERBOARD -> 200
-2026-10-12T20:11:11 INFO client 2 request QUIT -> 200
-2026-10-12T20:11:11 INFO game 8YOS ended: HOST_QUIT
-2026-10-12T20:11:11 INFO client 2 disconnected: session ended by server
-2026-10-12T20:11:11 INFO server shutting down
+2026-10-29T18:20:27 INFO server starting
+2026-10-29T18:20:27 INFO listening on 0.0.0.0:32617
+2026-10-29T18:20:27 INFO client 1 connected from 127.0.0.1:42598
+2026-10-29T18:20:27 INFO client 1 request CREATE_GAME -> 200
+2026-10-29T18:20:27 INFO game 18E6 created by Robert with 3 questions
+2026-10-29T18:20:28 INFO client 2 connected from 127.0.0.1:42608
+2026-10-29T18:20:28 INFO client 3 connected from 127.0.0.1:42610
+2026-10-29T18:20:28 INFO client 2 request JOIN_GAME -> 200
+2026-10-29T18:20:28 INFO game 18E6: Matthew joined
+2026-10-29T18:20:28 INFO client 3 request JOIN_GAME -> 200
+2026-10-29T18:20:28 INFO game 18E6: Bob joined
+2026-10-29T18:20:28 INFO client 4 connected from 127.0.0.1:42614
+2026-10-29T18:20:28 INFO client 4 request JOIN_GAME -> 200
+2026-10-29T18:20:28 INFO game 18E6: Alice joined
+2026-10-29T18:20:28 INFO client 5 connected from 127.0.0.1:42628
+2026-10-29T18:20:28 INFO client 6 connected from 127.0.0.1:42634
+2026-10-29T18:20:28 INFO client 5 request JOIN_GAME -> 200
+2026-10-29T18:20:28 INFO game 18E6: Sam joined
+2026-10-29T18:20:28 INFO client 6 request JOIN_GAME -> 409
+2026-10-29T18:20:29 INFO client 5 request QUIT -> 200
+2026-10-29T18:20:29 INFO game 18E6: Sam quit
+2026-10-29T18:20:29 INFO client 6 request QUIT -> 200
+2026-10-29T18:20:29 INFO client 5 disconnected: session ended by server
+2026-10-29T18:20:29 INFO client 6 disconnected: session ended by server
+2026-10-29T18:20:30 INFO client 1 request START_ROUND -> 200
+2026-10-29T18:20:30 INFO game 18E6: question 1 opened
+2026-10-29T18:20:30 INFO client 1 request SUBMIT_ANSWER -> 200
+2026-10-29T18:20:30 INFO client 3 request SUBMIT_ANSWER -> 200
+2026-10-29T18:20:30 INFO client 2 request SUBMIT_ANSWER -> 200
+2026-10-29T18:20:33 INFO client 4 request SUBMIT_ANSWER -> 200
+2026-10-29T18:20:33 INFO game 18E6: round 1 closed
+2026-10-29T18:20:34 INFO game 18E6: question 2 opened
+2026-10-29T18:20:34 INFO game 18E6: player Bob disconnected, reconnect window open
+2026-10-29T18:20:34 INFO client 3 disconnected: closed by peer
+2026-10-29T18:20:34 INFO client 1 request SUBMIT_ANSWER -> 200
+2026-10-29T18:20:34 INFO client 2 request SUBMIT_ANSWER -> 200
+2026-10-29T18:20:34 INFO client 4 request SUBMIT_ANSWER -> 200
+2026-10-29T18:20:34 INFO game 18E6: round 2 closed
+2026-10-29T18:20:35 INFO client 1 request LEADERBOARD -> 200
+2026-10-29T18:20:35 WARN client 1 protocol error 300: rejected unknown request
+2026-10-29T18:20:35 INFO client 7 connected from 127.0.0.1:37968
+2026-10-29T18:20:35 INFO game 18E6: question 3 opened
+2026-10-29T18:20:35 INFO client 7 request RECONNECT -> 200
+2026-10-29T18:20:35 INFO game 18E6: player Bob reconnected
+2026-10-29T18:20:35 INFO client 7 request LEADERBOARD -> 200
+2026-10-29T18:20:37 INFO game 18E6: player Bob disconnected, reconnect window open
+2026-10-29T18:20:37 INFO client 7 disconnected: closed by peer
+2026-10-29T18:20:39 INFO game 18E6: round 3 closed
+2026-10-29T18:20:41 INFO game 18E6 ended: COMPLETE
+2026-10-29T18:20:41 INFO client 1 disconnected: session ended by server
+2026-10-29T18:20:41 INFO client 4 disconnected: session ended by server
+2026-10-29T18:20:41 INFO client 2 disconnected: session ended by server
+2026-10-29T18:20:41 INFO server shutting down
