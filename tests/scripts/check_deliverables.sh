@@ -53,11 +53,16 @@ check "T49 sample log has no token-like secrets" bash -c '! grep -Eqi "token" do
 zip_path="$WORK/draft.zip"
 check "T50 package script creates one zip" bash scripts/package-phase3.sh "$zip_path"
 rel_dir="$WORK/rel-out"
+rel_path="termtrivia-rel-check/nested/rel.zip"
 mkdir -p "$rel_dir"
-check "T50 relative output path is relative to the caller's directory" bash -c \
-    'cd "$1" && bash "$2/scripts/package-phase3.sh" rel.zip >/dev/null && test -s "$1/rel.zip" && ! test -e "$2/rel.zip"' \
-    _ "$rel_dir" "$ROOT"
-rm -f "$ROOT/rel.zip"
+# Never run the check if the repo already has that path: a regression could overwrite it.
+check "T50 relative-path check will not touch an existing repo path" \
+    bash -c '! test -e "$1/termtrivia-rel-check"' _ "$ROOT"
+if [ ! -e "$ROOT/termtrivia-rel-check" ]; then
+    check "T50 relative output path is relative to the caller's directory" bash -c \
+        'cd "$1" && bash "$2/scripts/package-phase3.sh" "$3" >/dev/null && test -s "$1/$3" && ! test -e "$2/termtrivia-rel-check"' \
+        _ "$rel_dir" "$ROOT" "$rel_path"
+fi
 listing=$(unzip -Z1 "$zip_path" 2>/dev/null)
 for needed in README.md Makefile questions.txt src/server/server.cpp tests/minitest.h \
     docs/phase3-technical-report.pdf docs/curiosity-report-original.txt \
