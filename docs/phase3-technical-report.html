@@ -22,10 +22,11 @@ th { background: #e8e8e8; }
 Team: Robert and Matthew<br>
 Repository: <code>CIS427_Phase2</code>, work branch <code>agentloop/20261029-1650-termtrivia-phase3</code><br>
 Demonstration: Thursday, November 12th, 12 to 1:45 PM.</p>
-<p class="pending"><b>Draft status.</b> Two sections, the <i>Team contribution summary</i> and the <i>Ripple Report
-reflection</i>, are marked <b>Pending student input</b> and must be written by the team before submission. All other
-sections describe the code and the test results recorded in this repository. The team uploads the completed zip to
-the &ldquo;P3&rdquo; folder on Canvas.</p>
+<p class="pending"><b>Draft status.</b> The <i>Team contribution summary</i> is written except for Matthew&rsquo;s
+individual reflection, which is marked <b>Pending student input</b>. The <i>Ripple Report reflection</i> is drafted
+from Robert&rsquo;s answers and awaits Matthew&rsquo;s review. All other sections describe the code and the test
+results recorded in this repository. The team uploads the completed zip to the &ldquo;P3&rdquo; folder on
+Canvas.</p>
 
 <h2>1. Revised Curiosity Report</h2>
 <h1>CIS 427 Curiosity Report (Phase 3 revision)</h1>
@@ -358,8 +359,100 @@ networking concept he learned, a technical challenge he overcame, a skill he wan
 contributed to user value.</p>
 
 <h2>14. Ripple Report reflection</h2>
-<p class="pending"><b>Pending student input.</b> The team must write its own Ripple Report reflection. No reflection has
-been written or implied in this draft.</p>
+<p class="pending"><b>Awaiting Matthew&rsquo;s review.</b> This reflection was drafted from Robert&rsquo;s answers. Matthew
+should read it, especially Parts B and E, and correct or add anything that does not match his experience.</p>
+
+<h3>Part A: Effects on users</h3>
+<p><b>Greatest value.</b> Two features created the most value: correctness-only scoring and reconnect. When two
+players know the material, they tie, and it does not matter who types faster. That also removes the typing-speed gap,
+since players type commands in a terminal. Reconnect fixes a problem that games like Kahoot have, where a player who
+gets disconnected cannot rejoin. A crash or an accidentally closed window no longer ends a player&rsquo;s game.</p>
+<p><b>Reliability.</b> The decision that improved reliability most was the reconnect token with a 60-second window. A
+dropped player keeps their name and score, and nobody else can take their place. Closing a round as soon as every
+active player has answered, and giving each game its own lock, also kept games moving and kept them independent.</p>
+<p><b>Hardest part of the interface.</b> Typing commands correctly: the spelling, and the order of arguments such as
+name before question count. We made these mistakes ourselves while testing. The client lists the commands at the start
+and shows a <code>Usage:</code> line when a command is typed wrongly.</p>
+<p><b>Error handling and trust.</b> The server answers a bad request with an error and keeps the connection open, so
+the player can try again. One typo does not break the game. This made it feel sturdier and more real.</p>
+<p><b>A user assumption.</b> We assumed players would prefer fairness over speed, and the people we interviewed did.
+Others we talked to enjoy the speed pressure, so correctness-only scoring is a plus for some players and takes away
+intensity for others.</p>
+<p><b>Evidence the application solves the problem.</b> In our interviews, two classmates said that speed-based scoring
+is annoying even when you answer correctly, and that being unable to reconnect after a disconnect is a problem. Both
+are addressed by the final design. The automated tests also pass (see section 10).</p>
+
+<h3>Part B: Effects on teammates</h3>
+<p><b>Protocol and parallel work.</b> At the start of Phase 1 we met for a couple of days to agree on the big
+decisions: correctness-only scoring and some form of reconnect. With those settled, the details fell into place and
+each of us could work on our own documents without contradicting the other. We worked in a shared Google Doc, with
+each document in its own tab, and we sat together to ask questions.</p>
+<p><b>Helpful documentation.</b> The tabbed shared Google Doc let each of us see what the other had done. We also used
+AI agents to summarize what had changed, so each of us stayed up to date.</p>
+<p><b>Rework.</b> The rework we had to do came from the professor&rsquo;s grading comments on Phase 1, which said the
+protocol, requirements, and test plan needed fixes. It did not come from confusion between the two of us.</p>
+<p><b>Resolving ideas.</b> We rarely disagreed. Our main discussion was how reconnect should work so that nobody could
+take a disconnected player&rsquo;s name. We asked the agents for options, discussed them, and chose the one that fit the
+scope of the project.</p>
+<p><b>What we would change.</b> We would meet and talk more toward the end of the project, as we did at the start.</p>
+
+<h3>Part C: Effects of networking decisions</h3>
+<p><b>Decision 1: Reconnect token and 60-second window.</b></p>
+<ul>
+<li><i>Decision:</i> Each player gets a private token when they join or create a game. To reconnect, the player must
+present their name, the game&rsquo;s join code, and the token within 60 seconds.</li>
+<li><i>Why:</i> We wanted dropped players to be able to return, but we had to stop someone else from reconnecting with
+a disconnected player&rsquo;s name and taking their place.</li>
+<li><i>Benefit:</i> Dropped players keep their score, and nobody can take over their seat.</li>
+<li><i>Tradeoff:</i> If the host leaves, the game keeps running on its timers and ends by itself, but nobody can end it
+early or use the host&rsquo;s controls.</li>
+<li><i>What we would change:</i> Add host transfer, so the host&rsquo;s permissions pass to another player.</li>
+</ul>
+<p><b>Decision 2: One lock per game.</b></p>
+<ul>
+<li><i>Decision:</i> Each game has its own lock, and the server runs one thread per client.</li>
+<li><i>Why:</i> Several games can run on one server, and separate groups of friends should not slow each other down. A
+single global lock was our first design. The team&rsquo;s testing showed it let slow clients in one game delay other
+games, and the test failed in 5 of 6 runs (T40, section 10), so we moved to one lock per game.</li>
+<li><i>Benefit:</i> Games run independently of each other.</li>
+<li><i>Tradeoff:</i> A client that stops reading still delays its own game, by up to 200 ms per message, and a thread
+per client does not scale to thousands of connections.</li>
+<li><i>What we would change:</i> Give each client an outgoing message queue and move to an event loop or thread
+pool.</li>
+</ul>
+<p><b>Decision 3: No persistence (games exist only in memory).</b></p>
+<ul>
+<li><i>Decision:</i> Only the question bank is stored in a file. Active games and scores exist only in memory.</li>
+<li><i>Why:</i> This is a class project. Saving anything else would have been a lot of extra work and was not needed
+for what the project was aiming to do.</li>
+<li><i>Benefit:</i> The design is simpler, and there is no file handling to get wrong.</li>
+<li><i>Tradeoff:</i> If the server stops or crashes, all games and scores are lost.</li>
+<li><i>What we would change:</i> Save game state in a database so it survives a crash, and so players could replay the
+same set of questions.</li>
+</ul>
+
+<h3>Part D: Scale reflection</h3>
+<p>If this were used by hundreds or thousands of people, the first thing we would improve is the concurrency model. We
+would replace one thread per client with an event loop: one thread watches all the connections and handles whichever
+has data ready. Thousands of threads cost too much memory and switching time. The tradeoff is that each piece of work
+must be short, or it would hold up every client. We would pair this with a per-client outgoing queue so a slow reader
+cannot delay a broadcast. After that, we would add persistence, as described above.</p>
+
+<h3>Part E: Use of AI tools</h3>
+<p><b>Tools.</b> We used Codex, Claude, and Claude Code. For coding we used the Codex and Claude Code command-line tools
+on an Omarchy Linux system.</p>
+<p><b>How we used them.</b> (1) For design decisions such as reconnect, we described what we wanted and asked the agents
+for options, then discussed and chose together. We also had the agents walk us through the documents and draft them: we
+explained what we wanted, the agent asked questions, and we answered until we were confident in the draft. (2) For the
+code, one of us used an agentic workflow with three gates, in which Claude and Codex hand off to and check each
+other&rsquo;s work. This is how the Phase 2 and Phase 3 code was written and tested.</p>
+<p><b>Productivity.</b> The tools greatly sped up the coding. Phase 2 was done in about an hour. For the documents,
+they mostly helped get our spoken ideas onto paper, and did not save as much time.</p>
+<p><b>Effect on learning.</b> Our learning shifted from syntax and code toward higher-level architecture: the scope of
+the project, what its functions should be, how to build them, and how to test them. The cost is that we did not write
+the socket code ourselves, so our understanding of socket programming is shallower than if we had. We reviewed the code
+and used AI to explain it, and we divided it between us: Robert reviews and explains the server, and Matthew the
+client.</p>
 
 </body>
 </html>
