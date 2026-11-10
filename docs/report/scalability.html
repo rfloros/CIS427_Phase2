@@ -10,6 +10,22 @@ connections would be limited by threads, stacks, and context switching. (2) A br
 inside the game's lane; with many players or slow readers one game's round could be delayed by up to 200 ms per stalled
 reader. (3) Everything lives in one process on one machine, with no persistence or failover. (4) The game-state mutex
 is shared by all games, but it is held only for short in-memory operations, never for socket I/O.</p>
+<p><b>Expected behavior with 10 and 100 clients.</b> With 10 clients the server is well inside what was measured:
+replies took about 1 ms with 20 clients. With 100 clients spread over several games, the load test at 55 and 210
+clients suggests it keeps working with no failed requests, at the cost of about 100 threads and slower replies
+under load. 100 players in one timed game was not tested: each broadcast is written to the players one after
+another inside that game&rsquo;s lane, so pushes take longer as a game grows, and one stalled reader adds up to
+200 ms.</p>
+<p><b>Memory and threads.</b> Peak resident memory was 5 MiB with 55 clients and 8 MiB with 210, about 20 KiB more
+per added client. Each thread also reserves a stack in virtual memory (8 MiB by default on Linux), so the thread
+count, not memory in use, is the first limit: one per client, one per game, plus the accept loop.</p>
+<p><b>Logging, contention, and bandwidth.</b> Every request writes one log line under a single logger mutex and
+flushes it, so at about 1 000 requests per second the logger becomes a point where all threads wait; a buffered or
+background logger would fix that. Shared-data contention is kept low because each game has its own lane and the shared
+routing and game-manager mutexes are held only for short in-memory work, never during socket I/O. Network bandwidth
+is small: a question push is a few hundred bytes and a result push is about 20 bytes per player, every 25 seconds.</p>
+<p><b>Storage and single-server risk.</b> Only the question bank is stored; games are in memory, so a crash or
+restart ends every game (T51). There is one server process on one machine, so it is a single point of failure.</p>
 <p><b>What would come next.</b> An event loop or a worker pool, a per-connection outbound queue with a writer so a slow
 reader never delays a broadcast, and sharding games across processes. A load test (section 10, T52) held 55 and then
 210 clients in 5 and 10 games in the lobby with no failed request; response times rose from about 35 ms to about

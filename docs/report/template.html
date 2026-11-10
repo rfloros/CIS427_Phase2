@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>TermTrivia Phase 3 technical report (draft)</title>
+<title>TermTrivia Phase 3 technical report</title>
 <style>
 body { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 10pt; line-height: 1.35; }
 h1 { font-size: 20pt; }
@@ -18,14 +18,10 @@ th { background: #e8e8e8; }
 <body>
 
 <h1>TermTrivia: Phase 3 technical report</h1>
-<p><b>CIS 427 Socket Programming Project, final submission (DRAFT)</b><br>
+<p><b>CIS 427 Socket Programming Project, final submission</b><br>
 Team: Robert and Matthew<br>
-Repository: <code>CIS427_Phase2</code>, work branch <code>agentloop/20261029-1650-termtrivia-phase3</code><br>
+Repository: <code>rfloros/CIS427_Phase2</code>, branch <code>main</code><br>
 Demonstration: Thursday, November 12th, 12 to 1:45 PM.</p>
-<p class="pending"><b>Draft status.</b> The <i>Team contribution summary</i> and the <i>Ripple Report
-reflection</i> are complete: both individual reflections are written, and Matthew has reviewed and approved the Ripple
-Report. All other sections describe the code and the test results recorded in this repository. The team uploads the
-completed zip to the &ldquo;P3&rdquo; folder on Canvas.</p>
 
 <h2>1. Revised Curiosity Report</h2>
 <!--CURIOSITY-->
@@ -78,6 +74,15 @@ lock, the game-state object, the logger, and the question bank.</p>
 stalled reader in another game, a disconnect and reconnect, and the end of the game.</p>
 
 <h2>6. Concurrency design</h2>
+<p><b>Why one thread per client.</b> Each client gets its own handler thread that can simply block on its own socket,
+which keeps each handler short and easy for the team to read, explain, and test. The design target is about 20 players
+per game and a handful of games, well within what threads handle comfortably, and it follows the course&rsquo;s
+multi-threaded server sample. The cost is that threads grow with clients (section 12), which an event loop would
+avoid. <b>Sessions</b> are a <code>Connection</code> object per socket with a numeric client id, and a
+<code>Player</code> in a game holding the name, private token, score, and state (section 8). <b>Shared data</b> is
+the table of active games, each game&rsquo;s players, scores, and current question, the table of reconnectable
+sessions, and the server&rsquo;s connection and lane maps. Every command and timer tick that reads or changes them is
+synchronized as described below.</p>
 <p><b>Threads.</b> The accept loop starts one handler thread per connection; the handler owns that connection and is
 the only reader of its socket. Each game has one timer thread that ticks only that game every 20 ms. Writes can come
 from a handler (replies, and pushes caused by that command) or from the timer thread (question, result, and end
@@ -130,6 +135,11 @@ HOST_ENDED, HOST_QUIT, and HOST_EXPIRED (new in Phase 3). <b>Error codes:</b> 30
 only, 404 unknown code, 409 duplicate name, 410 reconnect refused (one generic reply for any wrong detail), 420 no open
 round, 421 already started, 422 already answered, 423 bad question count. Phase 3 additions are recorded in
 <code>docs/design-changes.md</code> (decisions 38 to 43).</p>
+<p><b>Client update strategy: hybrid.</b> Commands use request-response (each command gets exactly one reply). Game
+events use server push: QUESTION, ROUND_RESULT, and GAME_END are sent without a request and always start with
+<code>PUSH</code>, so the client can tell them from replies. The client&rsquo;s reader thread is the only one that reads
+the socket; it shows pushes as soon as they arrive and hands replies to the prompt thread, so a push never corrupts
+typed input or another reply (T34, T39).</p>
 
 <h2>8. Data structures</h2>
 <table border="1" cellpadding="4" cellspacing="0" width="100%">
@@ -171,7 +181,8 @@ tokens never are.</li>
 <li>A client that stops reading costs its own game up to 200 ms of waiting per write before it is dropped.</li>
 <li>No host transfer; no persistence; all games are lost if the server stops.</li>
 <li>No encryption and no user accounts; reconnect safety rests on a four-character private token. All testing used
-localhost and one machine, never a real network, never more than 20 players.</li>
+localhost and one machine, never a real network. Timed games were tested with up to 20 players; the load test reached
+210 clients, but only in the lobby.</li>
 <li>A terminal and typing are required; a question still closes after 20 seconds.</li>
 <li>The client lists a join code but cannot browse games; there is no chat, team mode, or custom timer per question.</li>
 </ul>
@@ -191,7 +202,7 @@ localhost and one machine, never a real network, never more than 20 players.</li
 <td>Tested the multiple-client behavior manually</td></tr>
 <tr><td>Code review and demo preparation</td><td>Reviews and explains the server code</td><td>Reviews and explains the client code</td></tr>
 </table>
-<p>The Phase 3 technical report, diagrams, and draft documentation were generated by the AI agents from the team&rsquo;s
+<p>The Phase 3 technical report, diagrams, and first drafts of the documentation were generated by the AI agents from the team&rsquo;s
 specifications. The team wrote this section itself.</p>
 
 <h3>Robert: individual reflection</h3>

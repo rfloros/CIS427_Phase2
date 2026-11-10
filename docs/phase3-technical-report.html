@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>TermTrivia Phase 3 technical report (draft)</title>
+<title>TermTrivia Phase 3 technical report</title>
 <style>
 body { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 10pt; line-height: 1.35; }
 h1 { font-size: 20pt; }
@@ -18,14 +18,10 @@ th { background: #e8e8e8; }
 <body>
 
 <h1>TermTrivia: Phase 3 technical report</h1>
-<p><b>CIS 427 Socket Programming Project, final submission (DRAFT)</b><br>
+<p><b>CIS 427 Socket Programming Project, final submission</b><br>
 Team: Robert and Matthew<br>
-Repository: <code>CIS427_Phase2</code>, work branch <code>agentloop/20261029-1650-termtrivia-phase3</code><br>
+Repository: <code>rfloros/CIS427_Phase2</code>, branch <code>main</code><br>
 Demonstration: Thursday, November 12th, 12 to 1:45 PM.</p>
-<p class="pending"><b>Draft status.</b> The <i>Team contribution summary</i> and the <i>Ripple Report
-reflection</i> are complete: both individual reflections are written, and Matthew has reviewed and approved the Ripple
-Report. All other sections describe the code and the test results recorded in this repository. The team uploads the
-completed zip to the &ldquo;P3&rdquo; folder on Canvas.</p>
 
 <h2>1. Revised Curiosity Report</h2>
 <h1>CIS 427 Curiosity Report (Phase 3 revision)</h1>
@@ -182,6 +178,15 @@ lock, the game-state object, the logger, and the question bank.</p>
 stalled reader in another game, a disconnect and reconnect, and the end of the game.</p>
 
 <h2>6. Concurrency design</h2>
+<p><b>Why one thread per client.</b> Each client gets its own handler thread that can simply block on its own socket,
+which keeps each handler short and easy for the team to read, explain, and test. The design target is about 20 players
+per game and a handful of games, well within what threads handle comfortably, and it follows the course&rsquo;s
+multi-threaded server sample. The cost is that threads grow with clients (section 12), which an event loop would
+avoid. <b>Sessions</b> are a <code>Connection</code> object per socket with a numeric client id, and a
+<code>Player</code> in a game holding the name, private token, score, and state (section 8). <b>Shared data</b> is
+the table of active games, each game&rsquo;s players, scores, and current question, the table of reconnectable
+sessions, and the server&rsquo;s connection and lane maps. Every command and timer tick that reads or changes them is
+synchronized as described below.</p>
 <p><b>Threads.</b> The accept loop starts one handler thread per connection; the handler owns that connection and is
 the only reader of its socket. Each game has one timer thread that ticks only that game every 20 ms. Writes can come
 from a handler (replies, and pushes caused by that command) or from the timer thread (question, result, and end
@@ -234,6 +239,11 @@ HOST_ENDED, HOST_QUIT, and HOST_EXPIRED (new in Phase 3). <b>Error codes:</b> 30
 only, 404 unknown code, 409 duplicate name, 410 reconnect refused (one generic reply for any wrong detail), 420 no open
 round, 421 already started, 422 already answered, 423 bad question count. Phase 3 additions are recorded in
 <code>docs/design-changes.md</code> (decisions 38 to 43).</p>
+<p><b>Client update strategy: hybrid.</b> Commands use request-response (each command gets exactly one reply). Game
+events use server push: QUESTION, ROUND_RESULT, and GAME_END are sent without a request and always start with
+<code>PUSH</code>, so the client can tell them from replies. The client&rsquo;s reader thread is the only one that reads
+the socket; it shows pushes as soon as they arrive and hands replies to the prompt thread, so a push never corrupts
+typed input or another reply (T34, T39).</p>
 
 <h2>8. Data structures</h2>
 <table border="1" cellpadding="4" cellspacing="0" width="100%">
@@ -292,6 +302,28 @@ runs; a lobby with an absent host ended with <code>HOST_EXPIRED</code> and a sta
 <code>COMPLETE</code> (T42, T47); a join in the final intermission appeared in the final results (T43); and failed
 thread launches, shutdown, and thread cleanup behaved as designed (T44). Testing also found one real bug, a reply
 that could be written after <code>GAME_END</code>; it was fixed and covered by a regression test.</p>
+<h3>Assignment test list and where each is covered</h3>
+<table border="1" cellpadding="4" cellspacing="0" width="100%">
+<tr><th>Required test (section 7.6)</th><th>Our tests</th></tr>
+<tr><td>1. Three clients connecting simultaneously</td><td>T45 (three idle connections, then a fourth), T36, T52 (55 and 210 clients)</td></tr>
+<tr><td>2. Three clients performing different operations</td><td>T41 (join, answer, QUIT, END_GAME in one game), T11</td></tr>
+<tr><td>3. Two clients modifying shared data</td><td>T36 (three clients answer at once; every answer counted once)</td></tr>
+<tr><td>4. Two clients attempting a conflicting operation</td><td>T37 (two clients join with the same name at once: one 200, one 409)</td></tr>
+<tr><td>5. One client disconnecting while others remain active</td><td>T46 (killed player reconnects while others play), T26, T47</td></tr>
+<tr><td>6. One client sending an invalid request while others continue</td><td>T52 (every tenth request is invalid, from all clients at once), T15</td></tr>
+<tr><td>7. Repeated connections and disconnections</td><td>T44 (12 game cycles and 12 quick connections; threads cleaned up)</td></tr>
+<tr><td>8. Rapid submission of multiple valid messages</td><td>T39 (300 LEADERBOARD requests during pushes), T52</td></tr>
+<tr><td>9. Partial-message delivery</td><td>T31 (command split across sends), T33 (one byte at a time), T34 (client side)</td></tr>
+<tr><td>10. Multiple messages arriving together</td><td>T32 (two commands in one send), T34 (reply and push in one chunk)</td></tr>
+<tr><td>Unexpected client termination</td><td>T26, T46</td></tr>
+<tr><td>Server handling of malformed data</td><td>T14, T15, T16, T20, T21</td></tr>
+<tr><td>Request for missing or nonexistent data</td><td>T17 (unknown join code gets 404), T28 (unknown reconnect gets 410)</td></tr>
+<tr><td>Invalid state transition</td><td>T19 (answer with no open round, second START_ROUND, second answer)</td></tr>
+<tr><td>Graceful shutdown</td><td>T44, SIGINT scenario in tests/scripts/scenarios.sh, T52</td></tr>
+<tr><td>Restart behavior</td><td>T51</td></tr>
+<tr><td>Load or stress test</td><td>T52</td></tr>
+</table>
+
 <p><b>Restart behavior (T51).</b> With a game running, the server was stopped (once with SIGINT and once with SIGKILL)
 and started again on the same port. Both players&rsquo; connections were closed. The old host and player tokens then
 got 410, the old join code got 404, and a new game could be created at once. Games live only in memory, so a restart
@@ -378,7 +410,8 @@ level in Phase 2 and with sockets in Phase 3.</p>
 <li>A client that stops reading costs its own game up to 200 ms of waiting per write before it is dropped.</li>
 <li>No host transfer; no persistence; all games are lost if the server stops.</li>
 <li>No encryption and no user accounts; reconnect safety rests on a four-character private token. All testing used
-localhost and one machine, never a real network, never more than 20 players.</li>
+localhost and one machine, never a real network. Timed games were tested with up to 20 players; the load test reached
+210 clients, but only in the lobby.</li>
 <li>A terminal and typing are required; a question still closes after 20 seconds.</li>
 <li>The client lists a join code but cannot browse games; there is no chat, team mode, or custom timer per question.</li>
 </ul>
@@ -396,6 +429,22 @@ connections would be limited by threads, stacks, and context switching. (2) A br
 inside the game's lane; with many players or slow readers one game's round could be delayed by up to 200 ms per stalled
 reader. (3) Everything lives in one process on one machine, with no persistence or failover. (4) The game-state mutex
 is shared by all games, but it is held only for short in-memory operations, never for socket I/O.</p>
+<p><b>Expected behavior with 10 and 100 clients.</b> With 10 clients the server is well inside what was measured:
+replies took about 1 ms with 20 clients. With 100 clients spread over several games, the load test at 55 and 210
+clients suggests it keeps working with no failed requests, at the cost of about 100 threads and slower replies
+under load. 100 players in one timed game was not tested: each broadcast is written to the players one after
+another inside that game&rsquo;s lane, so pushes take longer as a game grows, and one stalled reader adds up to
+200 ms.</p>
+<p><b>Memory and threads.</b> Peak resident memory was 5 MiB with 55 clients and 8 MiB with 210, about 20 KiB more
+per added client. Each thread also reserves a stack in virtual memory (8 MiB by default on Linux), so the thread
+count, not memory in use, is the first limit: one per client, one per game, plus the accept loop.</p>
+<p><b>Logging, contention, and bandwidth.</b> Every request writes one log line under a single logger mutex and
+flushes it, so at about 1 000 requests per second the logger becomes a point where all threads wait; a buffered or
+background logger would fix that. Shared-data contention is kept low because each game has its own lane and the shared
+routing and game-manager mutexes are held only for short in-memory work, never during socket I/O. Network bandwidth
+is small: a question push is a few hundred bytes and a result push is about 20 bytes per player, every 25 seconds.</p>
+<p><b>Storage and single-server risk.</b> Only the question bank is stored; games are in memory, so a crash or
+restart ends every game (T51). There is one server process on one machine, so it is a single point of failure.</p>
 <p><b>What would come next.</b> An event loop or a worker pool, a per-connection outbound queue with a writer so a slow
 reader never delays a broadcast, and sharding games across processes. A load test (section 10, T52) held 55 and then
 210 clients in 5 and 10 games in the lobby with no failed request; response times rose from about 35 ms to about
@@ -414,7 +463,7 @@ real network, so no claim is made about them.</p>
 <td>Tested the multiple-client behavior manually</td></tr>
 <tr><td>Code review and demo preparation</td><td>Reviews and explains the server code</td><td>Reviews and explains the client code</td></tr>
 </table>
-<p>The Phase 3 technical report, diagrams, and draft documentation were generated by the AI agents from the team&rsquo;s
+<p>The Phase 3 technical report, diagrams, and first drafts of the documentation were generated by the AI agents from the team&rsquo;s
 specifications. The team wrote this section itself.</p>
 
 <h3>Robert: individual reflection</h3>

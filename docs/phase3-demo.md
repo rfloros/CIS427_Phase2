@@ -124,7 +124,7 @@ is always A, and short timers (4 s question, 1 s intermission, 2 s final, 30 s r
   stalled client costs its own game at most one 200 ms write timeout (T40). With 20 players on localhost a reply
   took about 1 ms and a question reached everyone within 2 ms. The limits are thread and memory use per client,
   one process on one machine, and writes done one client at a time inside a game; thousands of clients would call
-  for an event loop or a thread pool and a writer queue. We measured only 20 players on localhost.
+  for an event loop or a thread pool and a writer queue. Timed play was measured with 20 players; a load test held 210 clients in the lobby with no failed request.
 - **Reference:** the scalability analysis in `docs/phase3-technical-report.pdf`.
 
 ## Proposed speaking parts (Robert and Matthew to confirm)

@@ -7,7 +7,7 @@
 | Project | CIS 427 Socket Programming Project, Phase 3 (many clients, many games) |
 | Application | TermTrivia: terminal multiplayer trivia over TCP |
 | Team | Robert, Matthew |
-| Build tested | branch `agentloop/20261029-1650-termtrivia-phase3`, based on `main` at `0f9acd0`; the final commit is recorded in the Gate 3 report |
+| Build tested | developed on branch `agentloop/20261029-1650-termtrivia-phase3` and merged to `main` (commit `45ad293`); T51, T52, and the team's re-run use later commits on `main` that changed only tests and documents |
 | Protocol version | Revision 2 plus the Phase 2 clarifications and Phase 3 decisions 38 to 44 (`docs/design-changes.md`) |
 | Test plan | `docs/test-plan.md` (T01 to T39, plus T40 to T47 added in Phase 3, and T51 restart and T52 load added on 2026-11-09) |
 | Date of the runs | 2026-10-29; T51 and T52 on 2026-11-09 |
@@ -216,5 +216,5 @@ make test-default-timers        # real timers (about 2.5 minutes)
 bash scripts/measure_nfr.sh     # 20-player timing (about 35 s)
 bash scripts/stress_test.sh     # load test, T52 (about 10 s; arguments: games, players per game, requests)
 bash tests/scripts/restart.sh   # restart behavior, T51 (runs as part of make test)
-bash scripts/package-phase3.sh --verify-build   # draft zip, extracted, built, and tested
+bash scripts/package-phase3.sh --verify-build   # submission zip, extracted, built, and tested
 ```

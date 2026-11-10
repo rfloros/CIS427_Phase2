@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
-# Creates the single draft zip for the Phase 3 submission: documents, source,
+# Creates the single zip for the Phase 3 submission: documents, source,
 # tests, build files, README, question bank, and the multi-client sample log.
 # It leaves out build output, binaries, local logs, session files, and the
-# workflow folders. The zip stays a draft until the team's Ripple reflection
-# and contribution summary are written into the report.
+# workflow folders.
 # Usage: bash scripts/package-phase3.sh [output.zip] [--verify-build]
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-output="$root/dist/termtrivia-phase3-draft.zip"
+output="$root/dist/termtrivia-phase3.zip"
 verify=0
 for arg in "$@"; do
     case "$arg" in

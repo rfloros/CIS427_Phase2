@@ -23,6 +23,28 @@ runs; a lobby with an absent host ended with <code>HOST_EXPIRED</code> and a sta
 <code>COMPLETE</code> (T42, T47); a join in the final intermission appeared in the final results (T43); and failed
 thread launches, shutdown, and thread cleanup behaved as designed (T44). Testing also found one real bug, a reply
 that could be written after <code>GAME_END</code>; it was fixed and covered by a regression test.</p>
+<h3>Assignment test list and where each is covered</h3>
+<table border="1" cellpadding="4" cellspacing="0" width="100%">
+<tr><th>Required test (section 7.6)</th><th>Our tests</th></tr>
+<tr><td>1. Three clients connecting simultaneously</td><td>T45 (three idle connections, then a fourth), T36, T52 (55 and 210 clients)</td></tr>
+<tr><td>2. Three clients performing different operations</td><td>T41 (join, answer, QUIT, END_GAME in one game), T11</td></tr>
+<tr><td>3. Two clients modifying shared data</td><td>T36 (three clients answer at once; every answer counted once)</td></tr>
+<tr><td>4. Two clients attempting a conflicting operation</td><td>T37 (two clients join with the same name at once: one 200, one 409)</td></tr>
+<tr><td>5. One client disconnecting while others remain active</td><td>T46 (killed player reconnects while others play), T26, T47</td></tr>
+<tr><td>6. One client sending an invalid request while others continue</td><td>T52 (every tenth request is invalid, from all clients at once), T15</td></tr>
+<tr><td>7. Repeated connections and disconnections</td><td>T44 (12 game cycles and 12 quick connections; threads cleaned up)</td></tr>
+<tr><td>8. Rapid submission of multiple valid messages</td><td>T39 (300 LEADERBOARD requests during pushes), T52</td></tr>
+<tr><td>9. Partial-message delivery</td><td>T31 (command split across sends), T33 (one byte at a time), T34 (client side)</td></tr>
+<tr><td>10. Multiple messages arriving together</td><td>T32 (two commands in one send), T34 (reply and push in one chunk)</td></tr>
+<tr><td>Unexpected client termination</td><td>T26, T46</td></tr>
+<tr><td>Server handling of malformed data</td><td>T14, T15, T16, T20, T21</td></tr>
+<tr><td>Request for missing or nonexistent data</td><td>T17 (unknown join code gets 404), T28 (unknown reconnect gets 410)</td></tr>
+<tr><td>Invalid state transition</td><td>T19 (answer with no open round, second START_ROUND, second answer)</td></tr>
+<tr><td>Graceful shutdown</td><td>T44, SIGINT scenario in tests/scripts/scenarios.sh, T52</td></tr>
+<tr><td>Restart behavior</td><td>T51</td></tr>
+<tr><td>Load or stress test</td><td>T52</td></tr>
+</table>
+
 <p><b>Restart behavior (T51).</b> With a game running, the server was stopped (once with SIGINT and once with SIGKILL)
 and started again on the same port. Both players&rsquo; connections were closed. The old host and player tokens then
 got 410, the old join code got 404, and a new game could be created at once. Games live only in memory, so a restart

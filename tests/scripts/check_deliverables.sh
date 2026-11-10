@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # T48 to T50: the Phase 3 deliverables exist and match the handout: report
-# sections, README fields, diagrams, sample log, demo guide, and the draft zip.
+# sections, README fields, diagrams, sample log, demo guide, and the submission zip.
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 cd "$ROOT" || exit 1
 
@@ -50,7 +50,7 @@ check "T49 sample log shows a conflict and a shutdown" bash -c \
     'grep -q "JOIN_GAME -> 409" docs/sample_server.log && grep -q "server shutting down" docs/sample_server.log'
 check "T49 sample log has no token-like secrets" bash -c '! grep -Eqi "token" docs/sample_server.log'
 
-# ---- T50 draft zip ----------------------------------------------------------
+# ---- T50 submission zip -------------------------------------------------------
 zip_path="$WORK/draft.zip"
 check "T50 package script creates one zip" bash scripts/package-phase3.sh "$zip_path"
 rel_dir="$WORK/rel-out"

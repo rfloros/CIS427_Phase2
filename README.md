@@ -166,12 +166,11 @@ reconnects, an invalid request, graceful termination, and the server log. The ta
 are in `docs/phase3-demo.md`. `bash scripts/demo.sh` is the earlier single-client demo, and
 `docs/sample_server.log` is a real log from `bash scripts/make_sample_log.sh`.
 
-### Packaging the draft submission
+### Packaging the submission
 
-`bash scripts/package-phase3.sh` writes `dist/termtrivia-phase3-draft.zip` (add
-`--verify-build` to extract it and run `make all` and `make test` there). The zip is a draft:
-the contribution summary and Ripple reflection in `docs/phase3-technical-report.pdf` are written and approved
-by both team members.
+`bash scripts/package-phase3.sh` writes `dist/termtrivia-phase3.zip` (add
+`--verify-build` to extract it and run `make all` and `make test` there). This is the single zip uploaded to the
+P3 folder on Canvas.
 
 ## Known limitations
 
