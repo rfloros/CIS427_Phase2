@@ -178,11 +178,12 @@ lock, the game-state object, the logger, and the question bank.</p>
 stalled reader in another game, a disconnect and reconnect, and the end of the game.</p>
 
 <h2>6. Concurrency design</h2>
-<p><b>Why one thread per client.</b> Each client gets its own handler thread that can simply block on its own socket,
-which keeps each handler short and easy for the team to read, explain, and test. The design target is about 20 players
-per game and a handful of games, well within what threads handle comfortably, and it follows the course&rsquo;s
-multi-threaded server sample. The cost is that threads grow with clients (section 12), which an event loop would
-avoid. <b>Sessions</b> are a <code>Connection</code> object per socket with a numeric client id, and a
+<p><b>Why one thread per client.</b> The project requires at least three simultaneous clients, and one thread per
+client is one of the approved approaches. We considered an event loop, but it would have been much more complicated
+and was not needed for the scope of the project. One thread per client lets each handler simply block on its own
+socket, which keeps the code short and easy for us to read, explain, and test, and it comfortably handles our target
+of about 20 players per game and more, well above the required minimum of three. The cost is that threads grow with
+clients (section 12), which an event loop would avoid. <b>Sessions</b> are a <code>Connection</code> object per socket with a numeric client id, and a
 <code>Player</code> in a game holding the name, private token, score, and state (section 8). <b>Shared data</b> is
 the table of active games, each game&rsquo;s players, scores, and current question, the table of reconnectable
 sessions, and the server&rsquo;s connection and lane maps. Every command and timer tick that reads or changes them is
@@ -512,9 +513,9 @@ name before question count. We made these mistakes ourselves while testing. The 
 and shows a <code>Usage:</code> line when a command is typed wrongly.</p>
 <p><b>Error handling and trust.</b> The server answers a bad request with an error and keeps the connection open, so
 the player can try again. One typo does not break the game. This made it feel sturdier and more real.</p>
-<p><b>A user assumption.</b> We assumed players would prefer fairness over speed, and the people we interviewed did.
-Others we talked to enjoy the speed pressure, so correctness-only scoring is a plus for some players and takes away
-intensity for others.</p>
+<p><b>A user assumption.</b> We assumed players would prefer fairness over speed, and the two classmates we
+interviewed did. Outside those two interviews, some other people we talked to said they like correctness-only scoring
+but also enjoy the speed pressure, so it is a plus for some players and takes away intensity for others.</p>
 <p><b>Evidence the application solves the problem.</b> In our interviews, two classmates said that speed-based scoring
 is annoying even when you answer correctly, and that being unable to reconnect after a disconnect is a problem. Both
 are addressed by the final design. The automated tests also pass (see section 10).</p>
