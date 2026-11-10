@@ -269,13 +269,16 @@ tokens never are.</li>
 <h2>10. Test results</h2>
 <p>Full detail, environment, and limitations: <code>docs/phase3-test-report.md</code>. Results were produced on one
 machine (Omarchy Linux, g++ 16.2.1, 8 CPUs) over localhost by the assistant that wrote the code; the team has not yet
-re-run them.</p>
+re-run them. The restart test (T51) and the load test (T52) were added later and run on a cloud VM (Ubuntu 24.04,
+g++ 13.3.0, 2 CPUs) over localhost.</p>
 <table border="1" cellpadding="4" cellspacing="0" width="100%">
 <tr><th>Measure</th><th>Result</th></tr>
 <tr><td>Unit tests (<code>make test</code>)</td><td>116 tests run, 0 check failures</td></tr>
 <tr><td>Real-socket tests</td><td>75 tests run, 0 check failures</td></tr>
 <tr><td>Scripted scenarios and deliverable audit</td><td>all checks passed</td></tr>
 <tr><td>Real 20/5/10/60 second timers</td><td>all checks passed (<code>make test-default-timers</code>)</td></tr>
+<tr><td>Restart behavior (T51)</td><td>18 of 18 checks passed: a clean stop and a crash, each followed by a restart on the same port</td></tr>
+<tr><td>Load test (T52)</td><td>55 clients: 11 000 of 11 000 requests succeeded; 210 clients: 21 000 of 21 000 succeeded (table below)</td></tr>
 <tr><td>New Phase 3 socket tests (T10, T11, T22, T23, T35 to T47)</td><td>all pass; each repeated 10 times with 150 of 150 runs passing</td></tr>
 <tr><td>20 players, real timers (NFR-01)</td><td>reply 1 ms (limit 500 ms), question push 2 ms (limit 1 s), 20-second round timer 20 001 to 20 006 ms (limit plus or minus 1 s)</td></tr>
 <tr><td>ThreadSanitizer, 75 socket tests</td><td>no report in Phase 3 code; one report in a Phase 2 startup test (not changed)</td></tr>
@@ -287,8 +290,85 @@ runs; a lobby with an absent host ended with <code>HOST_EXPIRED</code> and a sta
 <code>COMPLETE</code> (T42, T47); a join in the final intermission appeared in the final results (T43); and failed
 thread launches, shutdown, and thread cleanup behaved as designed (T44). Testing also found one real bug, a reply
 that could be written after <code>GAME_END</code>; it was fixed and covered by a regression test.</p>
-<p><b>Limits of this evidence:</b> one machine, localhost only, at most 20 players, and timing bounds that assume a
-lightly loaded machine.</p>
+<p><b>Restart behavior (T51).</b> With a game running, the server was stopped (once with SIGINT and once with SIGKILL)
+and started again on the same port. Both players&rsquo; connections were closed. The old host and player tokens then
+got 410, the old join code got 404, and a new game could be created at once. Games live only in memory, so a restart
+ends every game; this is the documented behavior (section 11).</p>
+
+<p><b>Load test (T52).</b> Every client joins a game, then sends its requests one at a time and waits for each reply.
+Nine in ten requests are LEADERBOARD and one in ten is an invalid line, which must get a 300 reply without disturbing
+anyone else. A request counts as failed if its reply is wrong or takes more than 5 seconds. The games stay in the
+lobby, so no timed pushes arrive between a request and its reply.</p>
+<table border="1" cellpadding="4" cellspacing="0" width="100%">
+<tr><th>Measure</th><th>5 games, run 1</th><th>5 games, run 2</th><th>10 games</th></tr>
+<tr><td>Clients (a host and 10 or 20 players per game)</td><td>55</td><td>55</td><td>210</td></tr>
+<tr><td>Requests per client</td><td>200</td><td>200</td><td>100</td></tr>
+<tr><td>Requests sent</td><td>11 000</td><td>11 000</td><td>21 000</td></tr>
+<tr><td>Successful requests</td><td>11 000</td><td>11 000</td><td>21 000</td></tr>
+<tr><td>Failed requests</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>Test duration</td><td>9.9 s</td><td>9.4 s</td><td>22.5 s</td></tr>
+<tr><td>Response time, average / median</td><td>36.4 / 35.2 ms</td><td>35.5 / 34.6 ms</td><td>154.5 / 139.9 ms</td></tr>
+<tr><td>Response time, 95th percentile / slowest</td><td>60.3 / 741.0 ms</td><td>57.8 / 234.2 ms</td><td>326.0 / 1 207.6 ms</td></tr>
+<tr><td>Server threads / memory at peak</td><td>61 / 5 MiB</td><td>61 / 5 MiB</td><td>221 / 8 MiB</td></tr>
+</table>
+<p><b>What it showed.</b> No request failed, the server never crashed, and it stopped cleanly with SIGINT afterwards.
+Threads equal the clients plus the games plus one, as designed. Response times rose from about 35 ms to about 155 ms
+and throughput stopped growing at roughly 1 000 requests per second. The test clients are bash processes sharing the
+same 2 CPUs as the server, so these times include client overhead and are best read as a comparison between runs. The
+slowest reply in the 210-client run took 1.2 s, above the 500 ms limit in NFR-01; that limit covers up to 20 players on
+a lightly loaded machine, so it is a sign of where thread-per-client starts to slow down, not a failed requirement.</p>
+
+<p><b>Limits of this evidence:</b> one machine, localhost only, timed play with at most 20 players in one game, a load
+test that stays in the lobby and uses a bash client on 2 CPUs, and timing bounds that assume a lightly loaded
+machine.</p>
+
+<h3>Phase 1 and Phase 2 test cases (T01 to T39), final results</h3>
+<p>These are the Phase 1 test plan and the Phase 2 results, rerun as part of <code>make test</code>. The full text of
+each test is in <code>docs/test-plan.md</code>, and the Phase 2 run is in <code>docs/phase2-test-report.md</code>. T36,
+T37, and T39 needed several clients and were first run in Phase 3. T10, T11, T22, T23, and T38 passed at game-logic
+level in Phase 2 and with sockets in Phase 3.</p>
+<table border="1" cellpadding="4" cellspacing="0" width="100%">
+<tr><th>Test ID</th><th>Requirement tested</th><th>Final result</th></tr>
+<tr><td>T01</td><td>FR-01 Create a game</td><td>Pass</td></tr>
+<tr><td>T02</td><td>FR-03, FR-04, NFR-01 Start the game and receive the first question</td><td>Pass</td></tr>
+<tr><td>T03</td><td>FR-05, FR-07 Submit an answer and close the round early</td><td>Pass</td></tr>
+<tr><td>T04</td><td>FR-07, NFR-01 Round closes on the timer</td><td>Pass</td></tr>
+<tr><td>T05</td><td>FR-06, NFR-10 Scoring ignores speed</td><td>Pass</td></tr>
+<tr><td>T06</td><td>FR-08 View the leaderboard</td><td>Pass</td></tr>
+<tr><td>T07</td><td>FR-09 Game ends automatically</td><td>Pass</td></tr>
+<tr><td>T08</td><td>FR-10 Host ends the game early</td><td>Pass</td></tr>
+<tr><td>T09</td><td>FR-11 Host quits</td><td>Pass</td></tr>
+<tr><td>T10</td><td>FR-11 Non-host quits (Phase 3)</td><td>Pass (logic and sockets)</td></tr>
+<tr><td>T11</td><td>FR-02 Join a game in the lobby (Phase 3)</td><td>Pass (logic and sockets)</td></tr>
+<tr><td>T12</td><td>FR-20, NFR-05, NFR-06 Client shows commands and input formats</td><td>Pass</td></tr>
+<tr><td>T13</td><td>FR-25, NFR-09 Server log contents</td><td>Pass</td></tr>
+<tr><td>T14</td><td>FR-18 Empty line</td><td>Pass</td></tr>
+<tr><td>T15</td><td>FR-18 Unknown command</td><td>Pass</td></tr>
+<tr><td>T16</td><td>FR-14 Bad CREATE_GAME arguments</td><td>Pass</td></tr>
+<tr><td>T17</td><td>FR-13 Unknown join code</td><td>Pass</td></tr>
+<tr><td>T18</td><td>FR-16 Command that needs a game</td><td>Pass</td></tr>
+<tr><td>T19</td><td>FR-19 Command in the wrong game state</td><td>Pass</td></tr>
+<tr><td>T20</td><td>FR-18 Invalid answer choice</td><td>Pass</td></tr>
+<tr><td>T21</td><td>FR-18, NFR-09 Over-length line</td><td>Pass</td></tr>
+<tr><td>T22</td><td>FR-17 Non-host uses a host command (Phase 3)</td><td>Pass (logic and sockets)</td></tr>
+<tr><td>T23</td><td>FR-15 Duplicate name in a game (Phase 3)</td><td>Pass (logic and sockets)</td></tr>
+<tr><td>T24</td><td>FR-20 Server not running</td><td>Pass</td></tr>
+<tr><td>T25</td><td>FR-20 Invalid port</td><td>Pass</td></tr>
+<tr><td>T26</td><td>FR-21 Client exits unexpectedly</td><td>Pass</td></tr>
+<tr><td>T27</td><td>FR-12, NFR-03 Reconnect within the window</td><td>Pass</td></tr>
+<tr><td>T28</td><td>FR-12, NFR-03, NFR-09 Reconnect rejected</td><td>Pass</td></tr>
+<tr><td>T29</td><td>FR-20 Server stops while the client is active</td><td>Pass</td></tr>
+<tr><td>T30</td><td>FR-22 Host disconnect does not end the game</td><td>Pass</td></tr>
+<tr><td>T31</td><td>FR-24, NFR-04 Command split across reads</td><td>Pass</td></tr>
+<tr><td>T32</td><td>FR-24, NFR-04 Two commands in one send</td><td>Pass</td></tr>
+<tr><td>T33</td><td>FR-24, NFR-04 One byte at a time</td><td>Pass</td></tr>
+<tr><td>T34</td><td>FR-04, FR-24 Client reassembles split server messages</td><td>Pass</td></tr>
+<tr><td>T35</td><td>FR-03, FR-24 Reply written before pushes</td><td>Pass</td></tr>
+<tr><td>T36</td><td>FR-23 Simultaneous answers</td><td>Pass</td></tr>
+<tr><td>T37</td><td>FR-15 Simultaneous joins with the same name</td><td>Pass</td></tr>
+<tr><td>T38</td><td>FR-23 Games are isolated</td><td>Pass (logic and sockets)</td></tr>
+<tr><td>T39</td><td>NFR-07, FR-24 Messages are never interleaved</td><td>Pass</td></tr>
+</table>
 
 <h2>11. Known limitations</h2>
 <ul>
@@ -315,8 +395,10 @@ inside the game's lane; with many players or slow readers one game's round could
 reader. (3) Everything lives in one process on one machine, with no persistence or failover. (4) The game-state mutex
 is shared by all games, but it is held only for short in-memory operations, never for socket I/O.</p>
 <p><b>What would come next.</b> An event loop or a worker pool, a per-connection outbound queue with a writer so a slow
-reader never delays a broadcast, and sharding games across processes. We did not measure 25 or more players, many
-simultaneous games, or a real network, so no claim is made about them.</p>
+reader never delays a broadcast, and sharding games across processes. A load test (section 10, T52) held 55 and then
+210 clients in 5 and 10 games in the lobby with no failed request; response times rose from about 35 ms to about
+155 ms on a 2-CPU machine, and threads grew one per client. We did not measure 25 or more players in one timed game or a
+real network, so no claim is made about them.</p>
 
 <h2>13. Team contribution summary</h2>
 <h3>Who did what</h3>

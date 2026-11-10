@@ -150,6 +150,8 @@ build/unit_tests T42        # run only tests whose name contains "T42"
 build/integration_tests T40
 bash tests/scripts/scenarios.sh   # the failure scenarios against the real binaries
 bash scripts/measure_nfr.sh       # 20-player timing check with the real timers (about 35 s)
+bash scripts/stress_test.sh        # load test: 55 clients in 5 games, 11 000 requests (about 10 s)
+bash tests/scripts/restart.sh     # restart behavior: stop the server, restart it, check old sessions (part of make test)
 ```
 
 `make test` builds the server, client, and test programs first. Test names include the test

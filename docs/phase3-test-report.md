@@ -9,9 +9,9 @@
 | Team | Robert, Matthew |
 | Build tested | branch `agentloop/20261029-1650-termtrivia-phase3`, based on `main` at `0f9acd0`; the final commit is recorded in the Gate 3 report |
 | Protocol version | Revision 2 plus the Phase 2 clarifications and Phase 3 decisions 38 to 44 (`docs/design-changes.md`) |
-| Test plan | `docs/test-plan.md` (T01 to T39, plus T40 to T47 added in Phase 3) |
-| Date of the runs | 2026-10-29 |
-| Who ran the tests | The AI coding assistant (Claude) that wrote the Phase 3 code, on Robert's machine. The team has not yet re-run them. |
+| Test plan | `docs/test-plan.md` (T01 to T39, plus T40 to T47 added in Phase 3, and T51 restart and T52 load added on 2026-11-09) |
+| Date of the runs | 2026-10-29; T51 and T52 on 2026-11-09 |
+| Who ran the tests | The AI coding assistant (Claude) that wrote the Phase 3 code, on Robert's machine. T51 and T52 were run by the same assistant on a cloud VM (section 2). The team has not yet re-run them. |
 
 ## 2. Test environment
 
@@ -22,6 +22,10 @@
 | Hardware | personal computer, 8 logical CPUs, 15 GiB RAM |
 | Network | everything on one machine over localhost (127.0.0.1) |
 | Dependencies | none beyond the C++ standard library and POSIX sockets; test framework `tests/minitest.h` |
+
+**T51 and T52 (2026-11-09)** were run on a cloud VM instead: Ubuntu 24.04.5 LTS, Linux 6.18.44 x86_64, g++ 13.3.0
+with the same flags and no warnings, 2 CPUs, 7.8 GiB RAM, everything over localhost. The team should re-run them on its
+own machine.
 
 ## 3. Scope and approach
 
@@ -43,6 +47,8 @@ packet loss, and several machines are **not** covered.
 
 | Measure | Result |
 |---|---|
+| Restart behavior (T51, `tests/scripts/restart.sh`) | 18 of 18 checks passed: a clean stop and a crash, each followed by a restart on the same port |
+| Load test (T52, `scripts/stress_test.sh`) | 55 clients, 11 000 of 11 000 requests succeeded; 210 clients, 21 000 of 21 000 succeeded (section 6) |
 | New or changed Phase 3 socket tests | T10, T11, T22, T23, T35 to T47 (see section 5) |
 | Each new socket test repeated 10 times | 150 of 150 runs passed |
 | `make test` | unit: 116 tests run, 0 check failures; integration: 75 tests run, 0 check failures; scripts: all checks passed |
@@ -74,6 +80,7 @@ Names in the first column are the test titles to filter on, for example `build/i
 | T45 | Three idle connections then a fourth creating a game; 20 players | The fourth client got its reply well under 500 ms. With 20 players the leaderboard, START_ROUND reply, and every question push met the limits in the test; the real-timer measurement is in section 6. Pass. |
 | T46 | A player was killed after answering, a round closed, the player reconnected | Reconnect gave `200 OK`, `1 1`; the leaderboard showed Robert:1 and Bob:1; the host's play was unaffected. Pass. |
 | T47 | Host killed during play, reconnect window 0.5 s, 3 questions (socket) and a 2-question game with a 30 s window (unit) | The game ran to `GAME_END COMPLETE` listing only the remaining player; nobody received `HOST_EXPIRED`; the other player got 402 for START_ROUND and END_GAME; the old host token got 410. Pass. |
+| T51 | A game with a host and a player was running; the server was stopped with SIGINT, started again on the same port, and the whole sequence was repeated with SIGKILL | In both cases the host and player connections were closed and the server started again on the same port. The old host token and the old player token each got 410, the old join code got 404, and a new CREATE_GAME on the new server got 200 OK. The clean stop logged `server shutting down`, and the log showed three server starts. A mutated copy of the script that expected 200 instead of 410 and 404 failed six checks, so the checks can fail. Pass. |
 | Late replies (found in testing) | A command read just before its game ended | An early version could write a reply between `GAME_END` and the close. Fixed (design-changes decision 44), regression test added; 8 repeats of the racing test passed afterwards. |
 
 ## 6. Measurements, race detection, and limitations
@@ -96,10 +103,51 @@ report for the server's handler, timer, lane, routing, or delivery code. It prod
 destroyed (`Server::request_stop` writes to the wake-up pipe while `~Server` closes it). It is in the startup path,
 not in a code path changed for Phase 3, and it was not changed.
 
+**Load test (T52).** `bash scripts/stress_test.sh [games] [players per game] [requests per client]`. Every client
+connects, joins its game, and then sends its requests one at a time, waiting for each reply. Nine in ten requests are
+LEADERBOARD (expected reply `200 OK`) and one in ten is an invalid `HELLO` (expected reply `300 message format error`),
+so the run also shows that bad input does not disturb the other clients. The games stay in the lobby, so no timed
+pushes arrive between a request and its reply. A request counts as failed if its reply is wrong or does not arrive
+within 5 seconds.
+
+| Measure | 5 games, run 1 | 5 games, run 2 | 10 games |
+|---|---|---|---|
+| Clients (a host and 10 or 20 players per game) | 55 | 55 | 210 |
+| Requests per client | 200 | 200 | 100 |
+| Requests sent | 11 000 | 11 000 | 21 000 |
+| Successful requests | 11 000 | 11 000 | 21 000 |
+| Failed requests | 0 | 0 | 0 |
+| Test duration | 9.9 s | 9.4 s | 22.5 s |
+| Throughput | 1 109 requests/s | 1 170 requests/s | 932 requests/s |
+| Response time, average | 36.4 ms | 35.5 ms | 154.5 ms |
+| Response time, median | 35.2 ms | 34.6 ms | 139.9 ms |
+| Response time, 95th percentile | 60.3 ms | 57.8 ms | 326.0 ms |
+| Response time, slowest | 741.0 ms | 234.2 ms | 1 207.6 ms |
+| Server threads at peak | 61 | 61 | 221 |
+| Server memory (RSS) at peak | 5 MiB | 5 MiB | 8 MiB |
+| Server alive afterwards, SIGINT exit status 0, shutdown logged, no ERROR lines | yes | yes | yes |
+
+**What the load test showed and its limits.**
+
+- No request failed and the server never crashed. After the run SIGINT stopped it cleanly.
+- Thread counts equal the clients plus the games plus one (61 = 55 + 5 + 1; 221 = 210 + 10 + 1), which matches the
+  design of one thread per client and one timer thread per game. Memory stayed small, but threads grow with clients.
+- Response times rose from about 35 ms (55 clients) to about 155 ms (210 clients), and throughput stopped growing at
+  roughly 1 000 requests per second. The test clients are bash processes on the same 2-CPU machine as the server, so
+  these times include the clients' own overhead and are much higher than the 1 ms reply time measured with 20 players
+  on an 8-CPU machine (above). Treat them as a comparison between runs, not as the server's speed.
+- In the 210-client run the slowest reply took 1.2 s, which is above the 500 ms limit in NFR-01. NFR-01 applies to up
+  to 20 players on a lightly loaded machine, and this run used 210 clients competing for 2 CPUs, so it is not a failure
+  of that requirement. It does show where the thread-per-client design starts to slow down.
+- The games stayed in the lobby, so the load test did not exercise timed pushes or answers. Those are covered by T36,
+  T39, T40, and the 20-player measurement.
+- It ran on one cloud VM over localhost, so there was no network delay or packet loss.
+
 **Limitations.**
 
 - One machine and localhost only; no packet loss, latency, or several machines.
-- At most 20 players in one game and a handful of games, not hundreds of clients.
+- Timed play was tested with at most 20 players in one game and a handful of games. The load test reached 210
+  clients in 10 games, but only in the lobby and with a bash client on a 2-CPU machine.
 - Timing assertions use generous bounds on a lightly loaded machine, so a heavily loaded machine could see
   occasional timing failures.
 - The tests were run by the assistant that wrote the code, on one machine. The team should re-run
@@ -108,12 +156,64 @@ not in a code path changed for Phase 3, and it was not changed.
 - The team's contribution summary and Ripple reflection are written by the team and are not part of these
   results.
 
-## 7. How to reproduce
+## 7. Phase 1 and Phase 2 test cases (T01 to T39), final results
+
+These are the Phase 1 test plan and the Phase 2 results, rerun as part of `make test`. The full text of each test is
+in `docs/test-plan.md`, and the Phase 2 run itself is in `docs/phase2-test-report.md`. The Pass column is the final
+result after Phase 3: every case now passes with real sockets. T36, T37, and T39 were not run in Phase 2 because they
+need several clients; T10, T11, T22, T23, and T38 passed at game-logic level in Phase 2 and passed with sockets in
+Phase 3.
+
+| Test ID | Requirement tested | Final result |
+|---|---|---|
+| T01 | FR-01 Create a game | Pass |
+| T02 | FR-03, FR-04, NFR-01 Start the game and receive the first question | Pass |
+| T03 | FR-05, FR-07 Submit an answer and close the round early | Pass |
+| T04 | FR-07, NFR-01 Round closes on the timer | Pass |
+| T05 | FR-06, NFR-10 Scoring ignores speed | Pass |
+| T06 | FR-08 View the leaderboard | Pass |
+| T07 | FR-09 Game ends automatically | Pass |
+| T08 | FR-10 Host ends the game early | Pass |
+| T09 | FR-11 Host quits | Pass |
+| T10 | FR-11 Non-host quits (Phase 3) | Pass (logic and sockets) |
+| T11 | FR-02 Join a game in the lobby (Phase 3) | Pass (logic and sockets) |
+| T12 | FR-20, NFR-05, NFR-06 Client shows commands and input formats | Pass |
+| T13 | FR-25, NFR-09 Server log contents | Pass |
+| T14 | FR-18 Empty line | Pass |
+| T15 | FR-18 Unknown command | Pass |
+| T16 | FR-14 Bad CREATE_GAME arguments | Pass |
+| T17 | FR-13 Unknown join code | Pass |
+| T18 | FR-16 Command that needs a game | Pass |
+| T19 | FR-19 Command in the wrong game state | Pass |
+| T20 | FR-18 Invalid answer choice | Pass |
+| T21 | FR-18, NFR-09 Over-length line | Pass |
+| T22 | FR-17 Non-host uses a host command (Phase 3) | Pass (logic and sockets) |
+| T23 | FR-15 Duplicate name in a game (Phase 3) | Pass (logic and sockets) |
+| T24 | FR-20 Server not running | Pass |
+| T25 | FR-20 Invalid port | Pass |
+| T26 | FR-21 Client exits unexpectedly | Pass |
+| T27 | FR-12, NFR-03 Reconnect within the window | Pass |
+| T28 | FR-12, NFR-03, NFR-09 Reconnect rejected | Pass |
+| T29 | FR-20 Server stops while the client is active | Pass |
+| T30 | FR-22 Host disconnect does not end the game | Pass |
+| T31 | FR-24, NFR-04 Command split across reads | Pass |
+| T32 | FR-24, NFR-04 Two commands in one send | Pass |
+| T33 | FR-24, NFR-04 One byte at a time | Pass |
+| T34 | FR-04, FR-24 Client reassembles split server messages | Pass |
+| T35 | FR-03, FR-24 Reply written before pushes | Pass |
+| T36 | FR-23 Simultaneous answers | Pass |
+| T37 | FR-15 Simultaneous joins with the same name | Pass |
+| T38 | FR-23 Games are isolated | Pass (logic and sockets) |
+| T39 | NFR-07, FR-24 Messages are never interleaved | Pass |
+
+## 8. How to reproduce
 
 ```sh
 make clean && make all          # no warnings
-make test                       # unit, socket, and script tests (about 35 s)
+make test                       # unit, socket, and script tests, including T51 (about 35 s)
 make test-default-timers        # real timers (about 2.5 minutes)
 bash scripts/measure_nfr.sh     # 20-player timing (about 35 s)
+bash scripts/stress_test.sh     # load test, T52 (about 10 s; arguments: games, players per game, requests)
+bash tests/scripts/restart.sh   # restart behavior, T51 (runs as part of make test)
 bash scripts/package-phase3.sh --verify-build   # draft zip, extracted, built, and tested
 ```

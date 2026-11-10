@@ -11,5 +11,7 @@ inside the game's lane; with many players or slow readers one game's round could
 reader. (3) Everything lives in one process on one machine, with no persistence or failover. (4) The game-state mutex
 is shared by all games, but it is held only for short in-memory operations, never for socket I/O.</p>
 <p><b>What would come next.</b> An event loop or a worker pool, a per-connection outbound queue with a writer so a slow
-reader never delays a broadcast, and sharding games across processes. We did not measure 25 or more players, many
-simultaneous games, or a real network, so no claim is made about them.</p>
+reader never delays a broadcast, and sharding games across processes. A load test (section 10, T52) held 55 and then
+210 clients in 5 and 10 games in the lobby with no failed request; response times rose from about 35 ms to about
+155 ms on a 2-CPU machine, and threads grew one per client. We did not measure 25 or more players in one timed game or a
+real network, so no claim is made about them.</p>
