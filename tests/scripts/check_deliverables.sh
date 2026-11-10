@@ -14,7 +14,8 @@ for section in "Revised Curiosity Report" "Final problem statement and value pro
     "Known limitations" "Scalability analysis" "Team contribution summary" "Ripple Report reflection"; do
     check "T48 report section: $section" grep -q "<h2[^>]*>[0-9. ]*$section" "$report"
 done
-check "T48 contribution summary is marked pending" test "$(grep -c 'Pending student input' "$report")" -ge 2
+check "T48 both individual reflections are written" has "$report" "Matthew: individual reflection"
+check "T48 no section is still marked pending" test "$(grep -c 'Pending student input' "$report")" -eq 0
 check "T48 report PDF exists and has pages" bash -c 'pdfinfo docs/phase3-technical-report.pdf | grep -q "^Pages: *[1-9]"'
 check "T48 original Curiosity Report is kept" test -s docs/curiosity-report-original.txt
 check "T48 revised Curiosity keeps the classmate interviews" has docs/curiosity-report-revised.html "2 classmates"

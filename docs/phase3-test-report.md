@@ -105,8 +105,8 @@ not in a code path changed for Phase 3, and it was not changed.
 - The tests were run by the assistant that wrote the code, on one machine. The team should re-run
   `make clean && make test` before the demonstration and record its own results.
 - `T40` depends on the kernel's socket buffer sizes; on a different kernel the fixture may need larger floods.
-- The team's contribution summary and Ripple reflection are written by the team (Matthew's individual reflection is
-  still pending) and are not part of these results.
+- The team's contribution summary and Ripple reflection are written by the team and are not part of these
+  results.
 
 ## 7. How to reproduce
 

@@ -168,8 +168,8 @@ are in `docs/phase3-demo.md`. `bash scripts/demo.sh` is the earlier single-clien
 
 `bash scripts/package-phase3.sh` writes `dist/termtrivia-phase3-draft.zip` (add
 `--verify-build` to extract it and run `make all` and `make test` there). The zip is a draft:
-Matthew's individual reflection is marked `Pending student input` in
-`docs/phase3-technical-report.pdf`, and the Ripple reflection awaits his review.
+both individual reflections are written, and the Ripple reflection in
+`docs/phase3-technical-report.pdf` awaits Matthew's review.
 
 ## Known limitations
 
