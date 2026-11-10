@@ -1,7 +1,9 @@
 <p>Full detail, environment, and limitations: <code>docs/phase3-test-report.md</code>. Results were produced on one
-machine (Omarchy Linux, g++ 16.2.1, 8 CPUs) over localhost by the assistant that wrote the code; the team has not yet
-re-run them. The restart test (T51) and the load test (T52) were added later and run on a cloud VM (Ubuntu 24.04,
-g++ 13.3.0, 2 CPUs) over localhost.</p>
+machine (Omarchy Linux, g++ 16.2.1, 8 CPUs) over localhost by the assistant that wrote the code. The restart test
+(T51) and the load test (T52) were added later and run on a cloud VM (Ubuntu 24.04, g++ 13.3.0, 2 CPUs) over
+localhost. On 2026-11-09 Robert re-ran <code>make clean &amp;&amp; make test</code> on his own Linux machine, including T51,
+and it finished with all checks passed. The team has not re-run the 20-player measurement, the default-timer run, or
+the load test.</p>
 <table border="1" cellpadding="4" cellspacing="0" width="100%">
 <tr><th>Measure</th><th>Result</th></tr>
 <tr><td>Unit tests (<code>make test</code>)</td><td>116 tests run, 0 check failures</td></tr>

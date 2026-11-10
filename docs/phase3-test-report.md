@@ -11,7 +11,7 @@
 | Protocol version | Revision 2 plus the Phase 2 clarifications and Phase 3 decisions 38 to 44 (`docs/design-changes.md`) |
 | Test plan | `docs/test-plan.md` (T01 to T39, plus T40 to T47 added in Phase 3, and T51 restart and T52 load added on 2026-11-09) |
 | Date of the runs | 2026-10-29; T51 and T52 on 2026-11-09 |
-| Who ran the tests | The AI coding assistant (Claude) that wrote the Phase 3 code, on Robert's machine. T51 and T52 were run by the same assistant on a cloud VM (section 2). The team has not yet re-run them. |
+| Who ran the tests | The AI coding assistant (Claude) that wrote the Phase 3 code, on Robert's machine. T51 and T52 were run by the same assistant on a cloud VM (section 2). On 2026-11-09 Robert re-ran `make clean && make test` on his own Linux machine; it finished with all checks passed (116 unit tests, 75 socket tests, and every script check, including T51). The team has not re-run the 20-player measurement, the default-timer run, or the load test (T52); those results are the assistant's. |
 
 ## 2. Test environment
 
@@ -24,8 +24,8 @@
 | Dependencies | none beyond the C++ standard library and POSIX sockets; test framework `tests/minitest.h` |
 
 **T51 and T52 (2026-11-09)** were run on a cloud VM instead: Ubuntu 24.04.5 LTS, Linux 6.18.44 x86_64, g++ 13.3.0
-with the same flags and no warnings, 2 CPUs, 7.8 GiB RAM, everything over localhost. The team should re-run them on its
-own machine.
+with the same flags and no warnings, 2 CPUs, 7.8 GiB RAM, everything over localhost. Robert's own re-run of `make test` on 2026-11-09 included
+T51 (`tests/scripts/restart.sh`); the load test (T52) has not been re-run on the team's machine.
 
 ## 3. Scope and approach
 
@@ -150,8 +150,9 @@ within 5 seconds.
   clients in 10 games, but only in the lobby and with a bash client on a 2-CPU machine.
 - Timing assertions use generous bounds on a lightly loaded machine, so a heavily loaded machine could see
   occasional timing failures.
-- The tests were run by the assistant that wrote the code, on one machine. The team should re-run
-  `make clean && make test` before the demonstration and record its own results.
+- Most results were produced by the assistant that wrote the code. Robert re-ran `make clean && make test` on his
+  own machine on 2026-11-09 and it passed. The 20-player measurement, the default-timer run, and the load test have
+  not been re-run by the team.
 - `T40` depends on the kernel's socket buffer sizes; on a different kernel the fixture may need larger floods.
 - The team's contribution summary and Ripple reflection are written by the team and are not part of these
   results.
